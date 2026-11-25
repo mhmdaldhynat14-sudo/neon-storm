@@ -33,10 +33,11 @@ function load() {
   s = s && typeof s === 'object' ? s : {};
   return { coins: +s.coins || 0, up: s.up || {}, bought: s.bought || {}, armor: +s.armor || 0, shield: +s.shield || 0, heart: +s.heart || 0, acap: +s.acap || 0 };
 }
-function save() { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch { } }
+function save() { try { localStorage.setItem(KEY, JSON.stringify(st)); if (!window.__nsRestoring) { localStorage.setItem('ns_local_ts', String(Date.now())); window.dispatchEvent(new CustomEvent('ns:save')); } } catch { } }
 
 export const Shop = {
   UP_COST, UP_STATS, MAX_UP, ARMOR, SHIELD, HEART,
+  reload() { st = load(); },
   heartLevel() { return st.heart; },
   heartHp() { let s = 0; for (let i = 0; i < st.heart; i++) s += HEART.gain(i); return s; },
   heartNext() { return st.heart >= HEART.cost.length ? 0 : HEART.gain(st.heart); },
