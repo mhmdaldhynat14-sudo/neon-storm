@@ -6,10 +6,12 @@ import { Enemies, Projectiles, TYPES, bossFor } from './enemies.js';
 import { Shop, SHOP_WEAPONS, SHOP_NEW } from './shop.js';
 import { Sound } from './audio.js';
 import { Input } from './input.js';
+import { initCloud } from './cloud.js';
 
 const $ = id => document.getElementById(id);
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
-const LS = { get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { } } };
+const SYNC_KEYS = new Set(['ns_islands_v1', 'ns_best', 'ns_best_wave', 'ns_settings']);
+const LS = { get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); if (!window.__nsRestoring && SYNC_KEYS.has(k)) { localStorage.setItem('ns_local_ts', String(Date.now())); window.dispatchEvent(new CustomEvent('ns:save')); } } catch { } } };
 
 const DEFAULTS = { fov: 75, viewDist: 1, bs: 1, sensT: 1, sensM: 1, smooth: 0.5, quality: 'auto', vol: 0.8, music: true, autoFire: false, assist: true, invert: false, leftFire: false, fps: false, shake: true, vibe: true, view: 'fp', zoomIdx: 1, fpsCap: 60, musicVol: 1, bop: 1, unscopeRun: true, unreloadRun: true, leanAim: true, layout: {} };
 const S = Object.assign({}, DEFAULTS, LS.get('ns_settings', {}));
@@ -881,6 +883,18 @@ function loop(now) {
 
 // ---------- boot ----------
 bindSettings(); resize(); updateBest(); spawnDemo(); applyHudSettings();
+initCloud({
+  onCloudLoaded() {
+    Shop.reload();
+    const p2 = loadProg();
+    PROG.b.length = 0; PROG.b.push(...p2.b); PROG.won = !!p2.won;
+    Object.assign(S, DEFAULTS, LS.get('ns_settings', {}));
+    updateBest(); applyHudSettings();
+    if (!$('islands').classList.contains('hidden')) renderIslands();
+    if (!$('levels').classList.contains('hidden')) renderLevels();
+    if (!$('shop').classList.contains('hidden') && typeof renderShop === 'function') renderShop();
+  }
+});
 if (input.touchMode) document.body.classList.add('touchmode');
 requestAnimationFrame(t => { lastT = t; requestAnimationFrame(loop); });
 // warm up shaders (avoid stutter on first shot/explosion)
