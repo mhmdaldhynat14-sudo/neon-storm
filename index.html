@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0b0f24">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>عاصفة النيون: هجوم الروبوتات</title>
+<meta name="description" content="لعبة تصويب ثلاثية الأبعاد على الهاتف: واجه موجات الروبوتات والطائرات المسيّرة في ساحة نيون.">
+<meta property="og:title" content="عاصفة النيون: هجوم الروبوتات">
+<meta property="og:description" content="لعبة تصويب ثلاثية الأبعاد مجانية تشتغل على الجوال مباشرة.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://yaman-shooter.sites.tab.bot/og.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="styles.css">
+<script type="module" src="js/main.js"></script>
+</head>
+<body>
+<div id="app">
+  <canvas id="view" aria-label="ساحة اللعب"></canvas>
+
+  <!-- ===== HUD ===== -->
+  <div id="hud" class="hidden" aria-hidden="true">
+    <div id="vignette"></div>
+    <div id="hurt"></div>
+    <div id="dmgdirs"></div>
+    <div id="lowhp"></div>
+
+    <div id="scopeov" class="hidden"><div class="lens"><div class="ret"></div></div><div class="sname"></div></div>
+    <div id="crosshair"><i class="ch t"></i><i class="ch b"></i><i class="ch l"></i><i class="ch r"></i><i class="dot"></i></div>
+    <div id="reloadhint"></div>
+    <div id="hitmarker"><i></i><i></i><i></i><i></i></div>
+
+    <div id="tl">
+      <canvas id="radar" width="120" height="120"></canvas>
+      <div id="bars">
+        <div class="bar hp"><span class="ico">✚</span><div class="track"><div class="fill" id="hpfill"></div><div class="ghost" id="hpghost"></div></div><b id="hpnum">100</b></div>
+        <div class="bar ar"><span class="ico">⛨</span><div class="track"><div class="fill" id="arfill"></div></div><b id="arnum">0</b></div>
+      </div>
+    </div>
+
+    <div id="tc">
+      <div id="scorebox"><b id="score">0</b></div>
+      <div id="tcrow"><div id="coinbox">💰 <b id="coins">0</b></div><div id="wavebox"><span>المرحلة</span> <b id="wavenum">1 - موجة 1/5</b></div><div id="enemiesleft"><span>الأعداء</span> <b id="enum">0</b></div></div>
+      <span id="combo"></span>
+    </div>
+
+    <div id="tr">
+      <button class="sbtn" id="btnSet" aria-label="الإعدادات">⚙</button>
+      <button class="sbtn" id="btnPause" aria-label="إيقاف مؤقت">❚❚</button>
+      <button class="sbtn" id="btnView" aria-label="تبديل المنظور">👁</button>
+      <button class="sbtn" id="btnFs" aria-label="ملء الشاشة">⛶</button>
+    </div>
+
+    <div id="bossbar" class="hidden"><div class="name">العملاق تيتان</div><div class="track"><div class="fill" id="bossfill"></div></div></div>
+    <div id="announce"></div>
+    <div id="subannounce"></div>
+    <div id="feed"></div>
+    <div id="dmgnums"></div>
+    <div id="fps" class="hidden"></div>
+
+    <div id="ammo">
+      <div id="wname">البندقية النبضية</div>
+      <div id="ammonum"><b id="mag">30</b><span id="reserve">/ 180</span></div>
+      <div id="reloadbar"><div id="reloadfill"></div></div>
+    </div>
+    <div id="pickupmsg"></div>
+    <div id="nextwave"></div>
+    <div id="ehps"></div>
+    <div id="hints" class="hidden"><div class="hl">👇 اسحب هون للحركة</div><div class="hr">👆 اسحب بأي مكان هون للتصويب</div></div>
+
+    <!-- touch controls -->
+    <div id="touch" class="hidden">
+      <div id="lookzone"></div>
+      <div id="movezone"></div>
+      <div id="joy"><div id="runlock">🏃🔒</div><div id="joyknob"></div></div>
+      <button class="tbtn" id="tFire" aria-label="إطلاق"><span>إطلاق</span></button>
+      <button class="tbtn" id="tFireS" aria-label="إطلاق مع منظار"><span>🎯</span></button>
+      <button class="tbtn" id="tFire2" aria-label="إطلاق"></button>
+      <button class="tbtn" id="tZoom" aria-label="تغيير التقريب">×2</button>
+      <button class="tbtn" id="tScope" aria-label="منظار">🔭</button>
+            <button class="tbtn" id="tProne" aria-label="انبطاح">⤓</button>
+      <button class="tbtn" id="tLeanL" aria-label="ميلان يسار">◀</button>
+      <button class="tbtn" id="tLeanR" aria-label="ميلان يمين">▶</button>
+      <button class="tbtn" id="tJump" aria-label="قفز">⤒</button>
+      <button class="tbtn" id="tDash" aria-label="اندفاع">»</button>
+      <button class="tbtn" id="tReload" aria-label="تلقيم">⟳</button>
+      <button class="tbtn" id="tSwap" aria-label="تبديل السلاح"><span id="tSwapLbl">2</span></button>
+      <button class="tbtn" id="tAuto" aria-label="إطلاق تلقائي">A</button>
+    </div>
+  </div>
+
+  <div id="layoutEd" class="hidden">
+    <div class="edbar">
+      <div class="edtip">اسحب أي زر أو مقبض الحركة 🕹 لمكانه · اضغط عليه لتختاره وتكبّره</div>
+      <label>حجم الزر المختار <output id="oBsz">100%</output><input type="range" id="sBsz" min="0.6" max="1.8" step="0.05" value="1"></label>
+      <button class="small" id="edJoy">🕹 المقبض: متحرك</button>
+      <button class="small" id="edReset">↺ الافتراضي</button>
+      <button class="small primary" id="edDone">✓ حفظ</button>
+    </div>
+  </div>
+  <!-- ===== MENUS ===== -->
+  <div id="menu" class="screen">
+    <div class="panel main">
+      <div class="logo">
+        <div class="logo1">عاصفة النيون</div>
+        <div class="logo2">هجوم الروبوتات</div>
+      </div>
+      <div class="best">أعلى نتيجة: <b id="bestScore">0</b> · المراحل المكتملة: <b id="bestWave">0</b> · 💰 <b id="menuCoins">0</b></div>
+      <button class="big primary" id="mPlay">▶ العب · الجزر 🏝</button>
+      <button class="big" id="mShop">🛒 المتجر</button>
+      <div class="row">
+        <button class="big" id="mSettings">⚙ الإعدادات</button>
+        <button class="big" id="mHow">؟ طريقة اللعب</button>
+      </div>
+      <button class="small" id="mFs">⛶ ملء الشاشة</button>
+      <div class="foot">مجانية · بدون تسجيل · بدون إعلانات</div>
+    </div>
+  </div>
+
+  <div id="settings" class="screen hidden">
+    <div class="panel wide">
+      <h2>الإعدادات</h2>
+      <div class="scroll"><div class="grid">
+        <label>حساسية التصويب (لمس) <output id="oSensT"></output><input type="range" id="sSensT" min="0.2" max="3" step="0.05"></label>
+        <label>نعومة الالتفاف <output id="oSmooth"></output><input type="range" id="sSmooth" min="0" max="1" step="0.05"></label>
+        <label>حساسية الماوس <output id="oSensM"></output><input type="range" id="sSensM" min="0.2" max="3" step="0.05"></label>
+        <label>حد الإطارات (FPS)
+          <select id="sFpsCap"><option value="30">30</option><option value="45">45</option><option value="60">60</option><option value="90">90</option><option value="120">120</option><option value="0">بدون حد</option></select>
+        </label>
+        <label>الجودة
+          <select id="sQuality"><option value="auto">تلقائي</option><option value="low">منخفضة</option><option value="med">متوسطة</option><option value="high">عالية</option></select>
+        </label>
+        <label>المنظور
+          <select id="sView"><option value="fp">شخص أول</option><option value="tp">شخص ثالث</option></select>
+        </label>
+        <label>مجال الرؤية (واسع) <output id="oFov"></output><input type="range" id="sFov" min="60" max="110" step="1"></label>
+        <label>مدى الرؤية (بعيد) <output id="oDist"></output><input type="range" id="sDist" min="1" max="3" step="0.25"></label>
+        <label>الصوت العام <output id="oVol"></output><input type="range" id="sVol" min="0" max="1" step="0.05"></label>
+        <label>صوت الموسيقى <output id="oMvol"></output><input type="range" id="sMvol" min="0" max="1" step="0.05"></label>
+        <label>شفافية الأزرار <output id="oBop"></output><input type="range" id="sBop" min="0.25" max="1" step="0.05"></label>
+        <label>حجم أزرار اللمس <output id="oBs"></output><input type="range" id="sBs" min="0.75" max="1.35" step="0.05"></label>
+        <label class="chk"><input type="checkbox" id="sMusic"> الموسيقى</label>
+        <label class="chk"><input type="checkbox" id="sAuto"> إطلاق تلقائي عند التصويب على عدو</label>
+        <label class="chk"><input type="checkbox" id="sAssist"> مساعدة التصويب</label>
+        <label class="chk"><input type="checkbox" id="sUnscope"> فكّ التصويب لما الشخصية تركض</label>
+        <label class="chk"><input type="checkbox" id="sUnreload"> وقف التلقيم لما الشخصية تركض</label>
+        <label class="chk"><input type="checkbox" id="sLeanAim"> الميلان يصوّب (يفعّل المنظار)</label>
+        <label class="chk"><input type="checkbox" id="sInvert"> عكس المحور العمودي</label>
+        <label class="chk"><input type="checkbox" id="sLeftFire"> زر إطلاق إضافي على اليسار</label>
+        <label class="chk"><input type="checkbox" id="sFps"> إظهار عدّاد الإطارات</label>
+        <label class="chk"><input type="checkbox" id="sShake"> اهتزاز الشاشة</label>
+        <label class="chk"><input type="checkbox" id="sVibe"> اهتزاز الجوال</label>
+      </div></div>
+      <div class="row"><button class="big" id="sLayout">🎮 تخصيص أماكن الأزرار</button><button class="big primary" id="setBack">✓ تم</button></div>
+    </div>
+  </div>
+
+  <div id="how" class="screen hidden">
+    <div class="panel wide">
+      <h2>طريقة اللعب</h2>
+      <div class="scroll"><div class="cols">
+        <div>
+          <h3>📱 على الجوال</h3>
+          <ul>
+            <li><b>يسار الشاشة:</b> اسحب للحركة (اسحب لآخر الدائرة للركض)</li>
+            <li><b>يمين الشاشة:</b> اسحب للتصويب والنظر</li>
+            <li><b>إطلاق:</b> اضغط باستمرار، وتقدر تسحب عليه وأنت تطلق</li>
+            <li><b>⟳</b> تلقيم · <b>⤒</b> قفز · <b>»</b> اندفاع</li>
+            <li><b>الرقم</b> تبديل السلاح · <b>A</b> إطلاق تلقائي</li>
+            <li><b>👁</b> منظور أول / ثالث</li>
+            <li>على الآيفون: زر المشاركة ← «إضافة إلى الشاشة الرئيسية» للعب بشاشة كاملة</li>
+          </ul>
+        </div>
+        <div>
+          <h3>⌨ على الكمبيوتر</h3>
+          <ul>
+            <li><b>W A S D</b> حركة · <b>الماوس</b> تصويب</li>
+            <li><b>زر الماوس الأيسر</b> إطلاق · <b>R</b> تلقيم</li>
+            <li><b>Space</b> قفز · <b>Shift</b> ركض · <b>E</b> اندفاع</li>
+            <li><b>1 2 3 4</b> أو العجلة أو <b>Q</b>: تبديل السلاح</li>
+            <li><b>V</b> تبديل المنظور · <b>Esc</b> إيقاف</li>
+          </ul>
+        </div>
+      </div>
+      <div class="cols">
+        <div>
+          <h3>🤖 الأعداء</h3>
+          <ul>
+            <li><b class="c-r">المندفع:</b> سريع ويهجم عن قرب</li>
+            <li><b class="c-s">الجندي:</b> يتخفّى خلف الحواجز ويطلق</li>
+            <li><b class="c-d">المسيّرة:</b> تطير وتلف حولك</li>
+            <li><b class="c-g">المدرّع:</b> درع من الأمام، اضربه بالرأس أو من الجنب</li>
+            <li><b class="c-b">الزعماء:</b> بآخر كل مرحلة زعيم جديد بشكل واسم مختلف، وكل واحد أقوى من اللي قبله. اقفز فوق موجته الأرضية!</li>
+          </ul>
+        </div>
+        <div>
+          <h3>⭐ نصائح</h3>
+          <ul>
+            <li>إصابة الرأس = ضرر مضاعف ونقاط أكثر</li>
+            <li>القتل المتتالي يرفع المضاعِف حتى ×5</li>
+            <li>البراميل الحمراء تنفجر، استغلها!</li>
+            <li>كسّر الصناديق، أحياناً فيها ذخيرة وصحة</li>
+            <li>كل موجتين تختار ترقية جديدة</li>
+            <li>من الموجة 4 بتاخذ قاذف البلازما</li>
+          </ul>
+        </div>
+      </div></div>
+      <button class="big primary" id="howBack">✓ فهمت</button>
+    </div>
+  </div>
+
+  <div id="pause" class="screen hidden">
+    <div class="panel">
+      <h2>إيقاف مؤقت</h2>
+      <button class="big primary" id="pResume">▶ استئناف</button>
+      <button class="big" id="pSettings">⚙ الإعدادات</button>
+      <button class="big" id="pRestart">↺ إعادة المرحلة</button>
+      <button class="big" id="pLevels">🗺 المراحل</button>
+      <button class="big" id="pMenu">⌂ القائمة الرئيسية</button>
+    </div>
+  </div>
+
+  <div id="perks" class="screen hidden">
+    <div class="panel wide">
+      <h2>اختر ترقية ⚡</h2>
+      <div id="perkcards"></div>
+    </div>
+  </div>
+
+  <div id="levels" class="screen hidden">
+    <div class="panel wide lvlpanel">
+      <h2><span id="lvltitle">المراحل 🗺</span> <small id="lvlcount">0/10</small></h2>
+      <div id="lvlgrid"></div>
+      <div id="lvlmsg" class="lvlmsg"></div>
+      <div class="row"><button class="big" id="lvlBack">‹ الجزر 🏝</button><button class="big" id="lvlShop">🛒 المتجر</button></div>
+    </div>
+  </div>
+
+  <div id="islands" class="screen hidden">
+    <div class="panel wide lvlpanel">
+      <h2>الجزر 🏝 <small id="islcount">0/5</small></h2>
+      <div id="islgrid"></div>
+      <div id="islmsg" class="lvlmsg"></div>
+      <div class="row"><button class="big" id="islBack">⌂ القائمة</button><button class="big" id="islShop">🛒 المتجر</button></div>
+    </div>
+  </div>
+
+  <div id="over" class="screen hidden">
+    <div class="panel">
+      <h2 class="danger" id="oTitle">انتهت اللعبة</h2>
+      <div id="oSub" class="osub hidden"></div>
+      <div id="newrec" class="hidden">🏆 رقم قياسي جديد!</div>
+      <div id="oCoins" class="ocoins"></div>
+      <div class="stats">
+        <div><span>النتيجة</span><b id="oScore">0</b></div>
+        <div><span>المرحلة</span><b id="oWave">0</b></div>
+        <div><span>القتلى</span><b id="oKills">0</b></div>
+        <div><span>الدقة</span><b id="oAcc">0%</b></div>
+        <div><span>إصابات الرأس</span><b id="oHead">0</b></div>
+        <div><span>أعلى نتيجة</span><b id="oBest">0</b></div>
+      </div>
+      <div class="row"><button class="big primary" id="oAgain">↺ أعد المحاولة</button>
+      <button class="big" id="oMenu">🗺 المراحل</button><button class="big" id="oShop">🛒 المتجر</button></div>
+    </div>
+  </div>
+
+  <div id="shop" class="screen hidden">
+    <div class="panel wide shoppanel">
+      <div class="shophead"><button class="small" id="shopBack">⌂ رجوع</button><h2>المتجر 🛒</h2><div class="coinbig">💰 <b id="shopCoins">0</b></div></div>
+      <div id="shopMsg"></div>
+      <div id="shopBody"></div>
+    </div>
+  </div>
+
+  <div id="rotate" class="hidden">
+    <div class="phone"></div>
+    <p>أدر الجوال بالعرض للعب</p>
+    <button class="small" id="rotSkip">متابعة على أي حال</button>
+  </div>
+
+  <div id="loading" class="screen">
+    <div class="spinner"></div>
+    <p id="loadmsg">جاري تحميل الساحة…</p>
+  </div>
+  <noscript><p class="nojs">هذه اللعبة تحتاج تفعيل JavaScript.</p></noscript>
+</div>
+</body>
+</html>
