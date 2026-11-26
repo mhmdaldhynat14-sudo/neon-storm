@@ -1,1 +1,358 @@
-placeholder_index
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>NEON STORM | عاصفة النيون في بيروت</title>
+  <meta name="description" content="العب NEON STORM: لعبة إطلاق نار ثلاثية الأبعاد بميزة التنقل الحر. 5 جزر، 50 مرحلة، ترقيات ضخمة وأسلحة فريدة في عالم عربي مفتوح." />
+  <meta property="og:title" content="NEON STORM | عاصفة النيون في بيروت">
+  <meta property="og:description" content="لعبة إطلاق نار ثلاثية الأبعاد! 5 جزر و 50 مرحلة وترقيات ضخمة في عالم عربي.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://mhmdaldhynat14-sudo.github.io/neon-storm/">
+  <meta property="og:image" content="https://mhmdaldhynat14-sudo.github.io/neon-storm/og.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="NEON STORM | عاصفة النيون في بيروت">
+  <link rel="icon" href="FAB_ICON">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <style>
+    /* ---------- base ---------- */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100%; height: 100%; overflow: hidden;
+      background: #05030f; color: #eef;
+      font-family: 'Share Tech Mono', monospace;
+      -webkit-user-select: none; user-select: none;
+    }
+    #c { display: block; width: 100%; height: 100%; }
+    button { font-family: inherit; cursor: pointer; }
+    .hidden { display: none !important; }
+
+    /* ---------- top brand ---------- */
+    #brand {
+      position: fixed; top: 14px; left: 14px; z-index: 20;
+      display: flex; align-items: center; gap: 10px;
+      pointer-events: none;
+    }
+    #brand .logo {
+      font-family: Orbitron, sans-serif; font-weight: 900; font-size: 20px;
+      color: #fff; letter-spacing: 1px;
+      text-shadow: 0 0 14px #00e5ff, 0 0 30px #00e5ff;
+    }
+    #brand .logo span { color: #00e5ff; }
+    #brand .sub {
+      font-size: 11px; color: #9ad; letter-spacing: 2px;
+    }
+
+    /* ---------- top bar (coins / wave / player) ---------- */
+    #topbar {
+      position: fixed; top: 10px; right: 10px; z-index: 20;
+      display: flex; gap: 8px; align-items: center;
+    }
+    .pill {
+      background: rgba(8, 12, 30, .55);
+      border: 1px solid rgba(0, 229, 255, .35);
+      border-radius: 20px;
+      padding: 6px 12px;
+      font-size: 13px; color: #fff;
+      backdrop-filter: blur(6px);
+    }
+    .pill b { color: #00e5ff; }
+    .pill .lbl { color: #8ad; font-size: 11px; }
+
+    /* ---------- move pad (bottom-left) ---------- */
+    #pad {
+      position: fixed; bottom: 14px; left: 14px; z-index: 20;
+      width: 130px; height: 130px;
+    }
+    #pad .ring {
+      position: absolute; inset: 0;
+      border: 2px solid rgba(0, 229, 255, .35);
+      border-radius: 50%;
+      background: radial-gradient(circle at 50% 50%, rgba(0,229,255,.06), rgba(0,229,255,.01) 70%);
+      box-shadow: inset 0 0 30px rgba(0,229,255,.12);
+    }
+    #pad .knob {
+      position: absolute; left: 50%; top: 50%;
+      width: 46px; height: 46px; margin: -23px 0 0 -23px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.25), rgba(0,30,50,.7) 60%, rgba(0,229,255,.35));
+      border: 2px solid #00e5ff;
+      box-shadow: 0 0 18px rgba(0,229,255,.45);
+    }
+    #pad .hint {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, 6px);
+      font-size: 9px; letter-spacing: 3px; color: #6bb;
+    }
+
+    /* ---------- right buttons ---------- */
+    #rbtns {
+      position: fixed; right: 14px; bottom: 90px; z-index: 20;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .rbtn {
+      width: 58px; height: 58px; border-radius: 50%;
+      border: 2px solid #00e5ff;
+      background: rgba(0, 20, 40, .55);
+      color: #fff; font-size: 22px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 16px rgba(0, 229, 255, .25), inset 0 0 18px rgba(0,229,255,.15);
+    }
+    .rbtn:active { transform: scale(.93); }
+    .rbtn .lbl { display: block; font-size: 8px; color: #9fd; letter-spacing: 1px; margin-top: 2px; }
+
+    /* ---------- top-right cluster (settings / islands / shop / missions) ---------- */
+    #tr {
+      position: fixed; top: 54px; right: 10px; z-index: 20;
+      display: flex; gap: 6px;
+    }
+    .tbtn {
+      width: 42px; height: 42px; border-radius: 12px;
+      border: 1px solid rgba(0,229,255,.4);
+      background: rgba(8,12,30,.6);
+      color: #bff; font-size: 18px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      position: relative;
+    }
+    .tbtn .lbl { font-size: 8px; color: #8ad; letter-spacing: 1px; }
+    .tbtn .dot {
+      position: absolute; top: -4px; right: -4px;
+      background: #ff2e88; color: #fff; font-size: 10px;
+      min-width: 18px; height: 18px; border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 0 10px rgba(255,46,136,.7);
+    }
+    .tbtn .dot[hidden] { display: none; }
+
+    /* ---------- toast ---------- */
+    #toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+      background: rgba(8,12,30,.85);
+      border: 1px solid rgba(0,229,255,.4);
+      color: #fff; padding: 10px 18px; border-radius: 14px;
+      font-size: 14px; opacity: 0; pointer-events: none;
+      transition: all .25s ease; z-index: 40; max-width: 90vw; text-align: center;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    #toast.err { border-color: rgba(255,60,60,.5); }
+
+    /* ---------- modal ---------- */
+    .modal {
+      position: fixed; inset: 0; z-index: 30;
+      background: rgba(3, 2, 12, .72);
+      display: flex; align-items: center; justify-content: center;
+      padding: 14px;
+      backdrop-filter: blur(4px);
+    }
+    .modal .sheet {
+      width: 100%; max-width: 420px; max-height: 88vh; overflow-y: auto;
+      background: linear-gradient(180deg, rgba(14,20,50,.96), rgba(6,8,28,.96));
+      border: 1px solid rgba(0,229,255,.4);
+      border-radius: 18px;
+      box-shadow: 0 30px 80px rgba(0,0,0,.6), 0 0 40px rgba(0,229,255,.15);
+      padding: 16px;
+    }
+    .modal h2 {
+      font-family: Orbitron, sans-serif; font-size: 18px; color: #00e5ff; letter-spacing: 1px;
+      display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;
+    }
+    .modal h2 .x {
+      background: none; border: none; color: #9ad; font-size: 22px; line-height: 1;
+    }
+    .row { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+    .ctl { display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: #8ad; }
+    .ctl input, .ctl select {
+      background: rgba(255,255,255,.06); border: 1px solid rgba(0,229,255,.3);
+      color: #fff; border-radius: 10px; padding: 8px 10px; font-family: inherit; font-size: 13px;
+    }
+    .cta {
+      display: block; width: 100%; margin-top: 10px;
+      background: linear-gradient(90deg,#00e5ff,#7b2fff); border: none; color: #fff;
+      padding: 12px; border-radius: 12px; font-size: 16px; letter-spacing: 1px; font-weight: bold;
+      box-shadow: 0 10px 24px rgba(0,229,255,.25);
+    }
+    .cta.ghost {
+      background: rgba(255,255,255,.06); border: 1px solid rgba(0,229,255,.3); box-shadow: none;
+    }
+    .shop-item {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      padding: 10px; border: 1px solid rgba(255,255,255,.08); background: rgba(255,255,255,.04);
+      border-radius: 12px; margin-bottom: 8px;
+    }
+    .shop-item .meta { flex: 1; min-width: 0; }
+    .shop-item .name { color: #fff; font-size: 14px; }
+    .shop-item .desc { color: #8ad; font-size: 11px; margin-top: 2px; }
+    .shop-item .price { color: #ffd23f; font-size: 13px; white-space: nowrap; }
+    .shop-item .buy {
+      background: linear-gradient(90deg,#ffd23f,#ff9800); border: none; color:#1a1000;
+      padding: 8px 12px; border-radius: 10px; font-weight: bold; font-size: 12px;
+    }
+    .shop-item .buy[disabled] { opacity: .5; }
+    .islands-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+    }
+    .isl {
+      border: 2px solid rgba(0,229,255,.35); border-radius: 14px; padding: 10px;
+      background: rgba(255,255,255,.04); text-align: center; color: #fff;
+    }
+    .isl.locked { opacity: .45; filter: grayscale(.5); }
+    .isl .name { font-family: Orbitron, sans-serif; font-size: 14px; color: #9ff; }
+    .isl .prog { font-size: 11px; color: #8ad; margin-top: 4px; }
+    .isl .go {
+      margin-top: 8px; width: 100%; padding: 8px; border-radius: 10px; border: none;
+      background: linear-gradient(90deg,#00e5ff,#7b2fff); color: #fff; font-weight: bold;
+    }
+    .isl.locked .go { background: rgba(255,255,255,.1); color: #aaa; }
+
+    /* ---------- cloud box ---------- */
+    #cloudBox {
+      position: fixed; top: 56px; left: 10px; z-index: 20;
+      min-width: 180px; max-width: 240px;
+    }
+    #cloudBox .gbtn {
+      display: flex; align-items: center; gap: 8px;
+      width: 100%; padding: 10px 12px;
+      background: linear-gradient(90deg,#00e5ff,#7b2fff);
+      color: #fff; border: none; border-radius: 14px;
+      font-size: 14px; font-weight: bold;
+      box-shadow: 0 8px 22px rgba(0,229,255,.25);
+    }
+    #cloudBox .chint {
+      margin-top: 6px; font-size: 11px; color: #8ad; text-align: center;
+    }
+    #cloudBox .cuser {
+      display: flex; align-items: center; gap: 8px;
+      background: rgba(8,12,30,.6); border: 1px solid rgba(0,229,255,.35);
+      border-radius: 16px; padding: 8px 10px;
+      backdrop-filter: blur(6px);
+    }
+    #cloudBox .cava { width: 30px; height: 30px; border-radius: 50%; border: 2px solid #00e5ff; }
+    #cloudBox .cinit {
+      display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg,#00e5ff,#7b2fff); color: #fff; font-weight: bold;
+    }
+    #cloudBox .cmeta { flex: 1; min-width: 0; }
+    #cloudBox .cname { color: #fff; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #cloudBox .csub { color: #8ad; font-size: 10px; }
+    #cloudBox .cact { display: flex; gap: 4px; }
+    #cloudBox .cbtn {
+      background: rgba(255,255,255,.08); border: 1px solid rgba(0,229,255,.3);
+      color: #bff; border-radius: 10px; padding: 6px 8px; font-size: 12px;
+    }
+    #cloudBox .cbtn.out { color: #fca; border-color: rgba(255,150,150,.4); }
+
+    /* ---------- small screens ---------- */
+    @media (max-width: 600px) {
+      #brand .logo { font-size: 16px; }
+      #cloudBox { top: 48px; min-width: 150px; }
+      #pad { width: 110px; height: 110px; }
+      #rbtns { bottom: 80px; }
+      .rbtn { width: 50px; height: 50px; font-size: 18px; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+
+  <div id="brand">
+    <div class="logo">NEON <span>STORM</span></div>
+    <div class="sub">عاصفة النيون في بيروت</div>
+  </div>
+
+  <div id="cloudBox"></div>
+
+  <div id="topbar">
+    <div class="pill"><span class="lbl">العملات:</span> <b id="coins">0</b></div>
+    <div class="pill"><span class="lbl">الموجة:</span> <b id="wave">1</b></div>
+    <div class="pill"><span class="lbl">اللاعب:</span> <b id="pname">—</b></div>
+  </div>
+
+  <div id="tr">
+    <button class="tbtn" id="btnMissions" type="button">🎯<span class="lbl">مهمات</span><span class="dot" id="dotMissions" hidden>0</span></button>
+    <button class="tbtn" id="btnIslands" type="button">🗺️<span class="lbl">الجزر</span></button>
+    <button class="tbtn" id="btnShop" type="button">🛒<span class="lbl">متجر</span></button>
+    <button class="tbtn" id="btnSettings" type="button">⚙️<span class="lbl">إعدادات</span></button>
+  </div>
+
+  <div id="pad">
+    <div class="ring"></div>
+    <div class="knob"></div>
+    <div class="hint">MOVE</div>
+  </div>
+
+  <div id="rbtns">
+    <button class="rbtn" id="btnFire" type="button">💥<span class="lbl">إطلاق</span></button>
+    <button class="rbtn" id="btnJump" type="button">⬆️<span class="lbl">قفز</span></button>
+    <button class="rbtn" id="btnPause" type="button">⏸️<span class="lbl">إيقاف</span></button>
+  </div>
+
+  <div id="toast"></div>
+
+  <!-- settings modal -->
+  <div class="modal hidden" id="modalSettings">
+    <div class="sheet">
+      <h2>الإعدادات <button class="x" data-close="modalSettings" type="button">×</button></h2>
+      <div class="row">
+        <label class="ctl">اسم اللاعب<input id="setName" maxlength="16" /></label>
+        <label class="ctl">اللون
+          <select id="setColor">
+            <option value="#00e5ff">سماوي</option>
+            <option value="#ff2e88">وردي</option>
+            <option value="#ffd23f">ذهبي</option>
+            <option value="#7CFC00">أخضر</option>
+            <option value="#ff6a00">برتقالي</option>
+          </select>
+        </label>
+      </div>
+      <div class="row">
+        <label class="ctl">حساسية اللمس<input id="setSens" type="range" min="0" max="100" /></label>
+        <label class="ctl">مستوى الصعوبة
+          <select id="setDiff">
+            <option value="easy">سهل</option>
+            <option value="normal">عادي</option>
+            <option value="hard">صعب</option>
+          </select>
+        </label>
+      </div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#bcd;margin-top:6px">
+        <input type="checkbox" id="setSound" /> تفعيل الصوت
+      </label>
+      <button class="cta" id="btnSaveSettings" type="button">حفظ الإعدادات</button>
+      <button class="cta ghost" id="btnResetAll" type="button">إعادة تعيين كل البيانات</button>
+    </div>
+  </div>
+
+  <!-- islands modal -->
+  <div class="modal hidden" id="modalIslands">
+    <div class="sheet">
+      <h2>الجزر الخمس <button class="x" data-close="modalIslands" type="button">×</button></h2>
+      <div class="islands-grid" id="islandsGrid"></div>
+    </div>
+  </div>
+
+  <!-- shop modal -->
+  <div class="modal hidden" id="modalShop">
+    <div class="sheet">
+      <h2>متجر الترقية <button class="x" data-close="modalShop" type="button">×</button></h2>
+      <div id="shopList"></div>
+    </div>
+  </div>
+
+  <!-- missions modal -->
+  <div class="modal hidden" id="modalMissions">
+    <div class="sheet">
+      <h2>المهمات <button class="x" data-close="modalMissions" type="button">×</button></h2>
+      <div id="missionsList"></div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initCloud } from './js/cloud.js';
+    // Minimal runtime hook — gameplay itself remains in game.js (added later)
+    initCloud().catch(console.warn);
+  </script>
+</body>
+</html>
