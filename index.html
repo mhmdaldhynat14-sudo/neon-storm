@@ -1,358 +1,294 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>NEON STORM | عاصفة النيون في بيروت</title>
-  <meta name="description" content="العب NEON STORM: لعبة إطلاق نار ثلاثية الأبعاد بميزة التنقل الحر. 5 جزر، 50 مرحلة، ترقيات ضخمة وأسلحة فريدة في عالم عربي مفتوح." />
-  <meta property="og:title" content="NEON STORM | عاصفة النيون في بيروت">
-  <meta property="og:description" content="لعبة إطلاق نار ثلاثية الأبعاد! 5 جزر و 50 مرحلة وترقيات ضخمة في عالم عربي.">
-  <meta property="og:type" content="website">
-  <meta property="og:url" content="https://mhmdaldhynat14-sudo.github.io/neon-storm/">
-  <meta property="og:image" content="https://mhmdaldhynat14-sudo.github.io/neon-storm/og.jpg">
-  <meta property="og:image:width" content="1200">
-  <meta property="og:image:height" content="630">
-  <meta property="og:image:alt" content="NEON STORM | عاصفة النيون في بيروت">
-  <link rel="icon" href="FAB_ICON">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <style>
-    /* ---------- base ---------- */
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body {
-      width: 100%; height: 100%; overflow: hidden;
-      background: #05030f; color: #eef;
-      font-family: 'Share Tech Mono', monospace;
-      -webkit-user-select: none; user-select: none;
-    }
-    #c { display: block; width: 100%; height: 100%; }
-    button { font-family: inherit; cursor: pointer; }
-    .hidden { display: none !important; }
-
-    /* ---------- top brand ---------- */
-    #brand {
-      position: fixed; top: 14px; left: 14px; z-index: 20;
-      display: flex; align-items: center; gap: 10px;
-      pointer-events: none;
-    }
-    #brand .logo {
-      font-family: Orbitron, sans-serif; font-weight: 900; font-size: 20px;
-      color: #fff; letter-spacing: 1px;
-      text-shadow: 0 0 14px #00e5ff, 0 0 30px #00e5ff;
-    }
-    #brand .logo span { color: #00e5ff; }
-    #brand .sub {
-      font-size: 11px; color: #9ad; letter-spacing: 2px;
-    }
-
-    /* ---------- top bar (coins / wave / player) ---------- */
-    #topbar {
-      position: fixed; top: 10px; right: 10px; z-index: 20;
-      display: flex; gap: 8px; align-items: center;
-    }
-    .pill {
-      background: rgba(8, 12, 30, .55);
-      border: 1px solid rgba(0, 229, 255, .35);
-      border-radius: 20px;
-      padding: 6px 12px;
-      font-size: 13px; color: #fff;
-      backdrop-filter: blur(6px);
-    }
-    .pill b { color: #00e5ff; }
-    .pill .lbl { color: #8ad; font-size: 11px; }
-
-    /* ---------- move pad (bottom-left) ---------- */
-    #pad {
-      position: fixed; bottom: 14px; left: 14px; z-index: 20;
-      width: 130px; height: 130px;
-    }
-    #pad .ring {
-      position: absolute; inset: 0;
-      border: 2px solid rgba(0, 229, 255, .35);
-      border-radius: 50%;
-      background: radial-gradient(circle at 50% 50%, rgba(0,229,255,.06), rgba(0,229,255,.01) 70%);
-      box-shadow: inset 0 0 30px rgba(0,229,255,.12);
-    }
-    #pad .knob {
-      position: absolute; left: 50%; top: 50%;
-      width: 46px; height: 46px; margin: -23px 0 0 -23px;
-      border-radius: 50%;
-      background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.25), rgba(0,30,50,.7) 60%, rgba(0,229,255,.35));
-      border: 2px solid #00e5ff;
-      box-shadow: 0 0 18px rgba(0,229,255,.45);
-    }
-    #pad .hint {
-      position: absolute; top: 50%; left: 50%; transform: translate(-50%, 6px);
-      font-size: 9px; letter-spacing: 3px; color: #6bb;
-    }
-
-    /* ---------- right buttons ---------- */
-    #rbtns {
-      position: fixed; right: 14px; bottom: 90px; z-index: 20;
-      display: flex; flex-direction: column; gap: 10px;
-    }
-    .rbtn {
-      width: 58px; height: 58px; border-radius: 50%;
-      border: 2px solid #00e5ff;
-      background: rgba(0, 20, 40, .55);
-      color: #fff; font-size: 22px;
-      display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 4px 16px rgba(0, 229, 255, .25), inset 0 0 18px rgba(0,229,255,.15);
-    }
-    .rbtn:active { transform: scale(.93); }
-    .rbtn .lbl { display: block; font-size: 8px; color: #9fd; letter-spacing: 1px; margin-top: 2px; }
-
-    /* ---------- top-right cluster (settings / islands / shop / missions) ---------- */
-    #tr {
-      position: fixed; top: 54px; right: 10px; z-index: 20;
-      display: flex; gap: 6px;
-    }
-    .tbtn {
-      width: 42px; height: 42px; border-radius: 12px;
-      border: 1px solid rgba(0,229,255,.4);
-      background: rgba(8,12,30,.6);
-      color: #bff; font-size: 18px;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      position: relative;
-    }
-    .tbtn .lbl { font-size: 8px; color: #8ad; letter-spacing: 1px; }
-    .tbtn .dot {
-      position: absolute; top: -4px; right: -4px;
-      background: #ff2e88; color: #fff; font-size: 10px;
-      min-width: 18px; height: 18px; border-radius: 9px;
-      display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 0 10px rgba(255,46,136,.7);
-    }
-    .tbtn .dot[hidden] { display: none; }
-
-    /* ---------- toast ---------- */
-    #toast {
-      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
-      background: rgba(8,12,30,.85);
-      border: 1px solid rgba(0,229,255,.4);
-      color: #fff; padding: 10px 18px; border-radius: 14px;
-      font-size: 14px; opacity: 0; pointer-events: none;
-      transition: all .25s ease; z-index: 40; max-width: 90vw; text-align: center;
-    }
-    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-    #toast.err { border-color: rgba(255,60,60,.5); }
-
-    /* ---------- modal ---------- */
-    .modal {
-      position: fixed; inset: 0; z-index: 30;
-      background: rgba(3, 2, 12, .72);
-      display: flex; align-items: center; justify-content: center;
-      padding: 14px;
-      backdrop-filter: blur(4px);
-    }
-    .modal .sheet {
-      width: 100%; max-width: 420px; max-height: 88vh; overflow-y: auto;
-      background: linear-gradient(180deg, rgba(14,20,50,.96), rgba(6,8,28,.96));
-      border: 1px solid rgba(0,229,255,.4);
-      border-radius: 18px;
-      box-shadow: 0 30px 80px rgba(0,0,0,.6), 0 0 40px rgba(0,229,255,.15);
-      padding: 16px;
-    }
-    .modal h2 {
-      font-family: Orbitron, sans-serif; font-size: 18px; color: #00e5ff; letter-spacing: 1px;
-      display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;
-    }
-    .modal h2 .x {
-      background: none; border: none; color: #9ad; font-size: 22px; line-height: 1;
-    }
-    .row { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
-    .ctl { display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: #8ad; }
-    .ctl input, .ctl select {
-      background: rgba(255,255,255,.06); border: 1px solid rgba(0,229,255,.3);
-      color: #fff; border-radius: 10px; padding: 8px 10px; font-family: inherit; font-size: 13px;
-    }
-    .cta {
-      display: block; width: 100%; margin-top: 10px;
-      background: linear-gradient(90deg,#00e5ff,#7b2fff); border: none; color: #fff;
-      padding: 12px; border-radius: 12px; font-size: 16px; letter-spacing: 1px; font-weight: bold;
-      box-shadow: 0 10px 24px rgba(0,229,255,.25);
-    }
-    .cta.ghost {
-      background: rgba(255,255,255,.06); border: 1px solid rgba(0,229,255,.3); box-shadow: none;
-    }
-    .shop-item {
-      display: flex; align-items: center; justify-content: space-between; gap: 8px;
-      padding: 10px; border: 1px solid rgba(255,255,255,.08); background: rgba(255,255,255,.04);
-      border-radius: 12px; margin-bottom: 8px;
-    }
-    .shop-item .meta { flex: 1; min-width: 0; }
-    .shop-item .name { color: #fff; font-size: 14px; }
-    .shop-item .desc { color: #8ad; font-size: 11px; margin-top: 2px; }
-    .shop-item .price { color: #ffd23f; font-size: 13px; white-space: nowrap; }
-    .shop-item .buy {
-      background: linear-gradient(90deg,#ffd23f,#ff9800); border: none; color:#1a1000;
-      padding: 8px 12px; border-radius: 10px; font-weight: bold; font-size: 12px;
-    }
-    .shop-item .buy[disabled] { opacity: .5; }
-    .islands-grid {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
-    }
-    .isl {
-      border: 2px solid rgba(0,229,255,.35); border-radius: 14px; padding: 10px;
-      background: rgba(255,255,255,.04); text-align: center; color: #fff;
-    }
-    .isl.locked { opacity: .45; filter: grayscale(.5); }
-    .isl .name { font-family: Orbitron, sans-serif; font-size: 14px; color: #9ff; }
-    .isl .prog { font-size: 11px; color: #8ad; margin-top: 4px; }
-    .isl .go {
-      margin-top: 8px; width: 100%; padding: 8px; border-radius: 10px; border: none;
-      background: linear-gradient(90deg,#00e5ff,#7b2fff); color: #fff; font-weight: bold;
-    }
-    .isl.locked .go { background: rgba(255,255,255,.1); color: #aaa; }
-
-    /* ---------- cloud box ---------- */
-    #cloudBox {
-      position: fixed; top: 56px; left: 10px; z-index: 20;
-      min-width: 180px; max-width: 240px;
-    }
-    #cloudBox .gbtn {
-      display: flex; align-items: center; gap: 8px;
-      width: 100%; padding: 10px 12px;
-      background: linear-gradient(90deg,#00e5ff,#7b2fff);
-      color: #fff; border: none; border-radius: 14px;
-      font-size: 14px; font-weight: bold;
-      box-shadow: 0 8px 22px rgba(0,229,255,.25);
-    }
-    #cloudBox .chint {
-      margin-top: 6px; font-size: 11px; color: #8ad; text-align: center;
-    }
-    #cloudBox .cuser {
-      display: flex; align-items: center; gap: 8px;
-      background: rgba(8,12,30,.6); border: 1px solid rgba(0,229,255,.35);
-      border-radius: 16px; padding: 8px 10px;
-      backdrop-filter: blur(6px);
-    }
-    #cloudBox .cava { width: 30px; height: 30px; border-radius: 50%; border: 2px solid #00e5ff; }
-    #cloudBox .cinit {
-      display: flex; align-items: center; justify-content: center;
-      background: linear-gradient(135deg,#00e5ff,#7b2fff); color: #fff; font-weight: bold;
-    }
-    #cloudBox .cmeta { flex: 1; min-width: 0; }
-    #cloudBox .cname { color: #fff; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    #cloudBox .csub { color: #8ad; font-size: 10px; }
-    #cloudBox .cact { display: flex; gap: 4px; }
-    #cloudBox .cbtn {
-      background: rgba(255,255,255,.08); border: 1px solid rgba(0,229,255,.3);
-      color: #bff; border-radius: 10px; padding: 6px 8px; font-size: 12px;
-    }
-    #cloudBox .cbtn.out { color: #fca; border-color: rgba(255,150,150,.4); }
-
-    /* ---------- small screens ---------- */
-    @media (max-width: 600px) {
-      #brand .logo { font-size: 16px; }
-      #cloudBox { top: 48px; min-width: 150px; }
-      #pad { width: 110px; height: 110px; }
-      #rbtns { bottom: 80px; }
-      .rbtn { width: 50px; height: 50px; font-size: 18px; }
-    }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0b0f24">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>عاصفة النيون: هجوم الروبوتات</title>
+<meta name="description" content="لعبة تصويب ثلاثية الأبعاد على الهاتف: واجه موجات الروبوتات والطائرات المسيّرة في ساحة نيون.">
+<meta property="og:title" content="عاصفة النيون: هجوم الروبوتات">
+<meta property="og:description" content="لعبة تصويب ثلاثية الأبعاد مجانية تشتغل على الجوال مباشرة.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://mhmdaldhynat14-sudo.github.io/neon-storm/og.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="styles.css">
+<script type="module" src="js/main.js"></script>
 </head>
 <body>
-  <canvas id="c"></canvas>
+<div id="app">
+  <canvas id="view" aria-label="ساحة اللعب"></canvas>
 
-  <div id="brand">
-    <div class="logo">NEON <span>STORM</span></div>
-    <div class="sub">عاصفة النيون في بيروت</div>
-  </div>
+  <!-- ===== HUD ===== -->
+  <div id="hud" class="hidden" aria-hidden="true">
+    <div id="vignette"></div>
+    <div id="hurt"></div>
+    <div id="dmgdirs"></div>
+    <div id="lowhp"></div>
 
-  <div id="cloudBox"></div>
+    <div id="scopeov" class="hidden"><div class="lens"><div class="ret"></div></div><div class="sname"></div></div>
+    <div id="crosshair"><i class="ch t"></i><i class="ch b"></i><i class="ch l"></i><i class="ch r"></i><i class="dot"></i></div>
+    <div id="reloadhint"></div>
+    <div id="hitmarker"><i></i><i></i><i></i><i></i></div>
 
-  <div id="topbar">
-    <div class="pill"><span class="lbl">العملات:</span> <b id="coins">0</b></div>
-    <div class="pill"><span class="lbl">الموجة:</span> <b id="wave">1</b></div>
-    <div class="pill"><span class="lbl">اللاعب:</span> <b id="pname">—</b></div>
-  </div>
-
-  <div id="tr">
-    <button class="tbtn" id="btnMissions" type="button">🎯<span class="lbl">مهمات</span><span class="dot" id="dotMissions" hidden>0</span></button>
-    <button class="tbtn" id="btnIslands" type="button">🗺️<span class="lbl">الجزر</span></button>
-    <button class="tbtn" id="btnShop" type="button">🛒<span class="lbl">متجر</span></button>
-    <button class="tbtn" id="btnSettings" type="button">⚙️<span class="lbl">إعدادات</span></button>
-  </div>
-
-  <div id="pad">
-    <div class="ring"></div>
-    <div class="knob"></div>
-    <div class="hint">MOVE</div>
-  </div>
-
-  <div id="rbtns">
-    <button class="rbtn" id="btnFire" type="button">💥<span class="lbl">إطلاق</span></button>
-    <button class="rbtn" id="btnJump" type="button">⬆️<span class="lbl">قفز</span></button>
-    <button class="rbtn" id="btnPause" type="button">⏸️<span class="lbl">إيقاف</span></button>
-  </div>
-
-  <div id="toast"></div>
-
-  <!-- settings modal -->
-  <div class="modal hidden" id="modalSettings">
-    <div class="sheet">
-      <h2>الإعدادات <button class="x" data-close="modalSettings" type="button">×</button></h2>
-      <div class="row">
-        <label class="ctl">اسم اللاعب<input id="setName" maxlength="16" /></label>
-        <label class="ctl">اللون
-          <select id="setColor">
-            <option value="#00e5ff">سماوي</option>
-            <option value="#ff2e88">وردي</option>
-            <option value="#ffd23f">ذهبي</option>
-            <option value="#7CFC00">أخضر</option>
-            <option value="#ff6a00">برتقالي</option>
-          </select>
-        </label>
+    <div id="tl">
+      <canvas id="radar" width="120" height="120"></canvas>
+      <div id="bars">
+        <div class="bar hp"><span class="ico">✚</span><div class="track"><div class="fill" id="hpfill"></div><div class="ghost" id="hpghost"></div></div><b id="hpnum">100</b></div>
+        <div class="bar ar"><span class="ico">⛨</span><div class="track"><div class="fill" id="arfill"></div></div><b id="arnum">0</b></div>
       </div>
-      <div class="row">
-        <label class="ctl">حساسية اللمس<input id="setSens" type="range" min="0" max="100" /></label>
-        <label class="ctl">مستوى الصعوبة
-          <select id="setDiff">
-            <option value="easy">سهل</option>
-            <option value="normal">عادي</option>
-            <option value="hard">صعب</option>
-          </select>
-        </label>
+    </div>
+
+    <div id="tc">
+      <div id="scorebox"><b id="score">0</b></div>
+      <div id="tcrow"><div id="coinbox">💰 <b id="coins">0</b></div><div id="wavebox"><span>المرحلة</span> <b id="wavenum">1 - موجة 1/5</b></div><div id="enemiesleft"><span>الأعداء</span> <b id="enum">0</b></div></div>
+      <span id="combo"></span>
+    </div>
+
+    <div id="tr">
+      <button class="sbtn" id="btnSet" aria-label="الإعدادات">⚙</button>
+      <button class="sbtn" id="btnPause" aria-label="إيقاف مؤقت">❚❚</button>
+      <button class="sbtn" id="btnView" aria-label="تبديل المنظور">👁</button>
+      <button class="sbtn" id="btnFs" aria-label="ملء الشاشة">⛶</button>
+    </div>
+
+    <div id="bossbar" class="hidden"><div class="name">العملاق تيتان</div><div class="track"><div class="fill" id="bossfill"></div></div></div>
+    <div id="announce"></div>
+    <div id="subannounce"></div>
+    <div id="feed"></div>
+    <div id="dmgnums"></div>
+    <div id="fps" class="hidden"></div>
+
+    <div id="ammo">
+      <div id="wname">البندقية النبضية</div>
+      <div id="ammonum"><b id="mag">30</b><span id="reserve">/ 180</span></div>
+      <div id="reloadbar"><div id="reloadfill"></div></div>
+    </div>
+    <div id="pickupmsg"></div>
+    <div id="nextwave"></div>
+    <div id="ehps"></div>
+    <div id="hints" class="hidden"><div class="hl">👇 اسحب هون للحركة</div><div class="hr">👆 اسحب بأي مكان هون للتصويب</div></div>
+
+    <!-- touch controls -->
+    <div id="touch" class="hidden">
+      <div id="lookzone"></div>
+      <div id="movezone"></div>
+      <div id="joy"><div id="runlock">🏃🔒</div><div id="joyknob"></div></div>
+      <button class="tbtn" id="tFire" aria-label="إطلاق"><span>إطلاق</span></button>
+      <button class="tbtn" id="tFireS" aria-label="إطلاق مع منظار"><span>🎯</span></button>
+      <button class="tbtn" id="tFire2" aria-label="إطلاق"></button>
+      <button class="tbtn" id="tZoom" aria-label="تغيير التقريب">×2</button>
+      <button class="tbtn" id="tScope" aria-label="منظار">🔭</button>
+            <button class="tbtn" id="tProne" aria-label="انبطاح">⤓</button>
+      <button class="tbtn" id="tLeanL" aria-label="ميلان يسار">◀</button>
+      <button class="tbtn" id="tLeanR" aria-label="ميلان يمين">▶</button>
+      <button class="tbtn" id="tJump" aria-label="قفز">⤒</button>
+      <button class="tbtn" id="tDash" aria-label="اندفاع">»</button>
+      <button class="tbtn" id="tReload" aria-label="تلقيم">⟳</button>
+      <button class="tbtn" id="tSwap" aria-label="تبديل السلاح"><span id="tSwapLbl">2</span></button>
+      <button class="tbtn" id="tAuto" aria-label="إطلاق تلقائي">A</button>
+    </div>
+  </div>
+
+  <div id="layoutEd" class="hidden">
+    <div class="edbar">
+      <div class="edtip">اسحب أي زر أو مقبض الحركة 🕹 لمكانه · اضغط عليه لتختاره وتكبّره</div>
+      <label>حجم الزر المختار <output id="oBsz">100%</output><input type="range" id="sBsz" min="0.6" max="1.8" step="0.05" value="1"></label>
+      <button class="small" id="edJoy">🕹 المقبض: متحرك</button>
+      <button class="small" id="edReset">↺ الافتراضي</button>
+      <button class="small primary" id="edDone">✓ حفظ</button>
+    </div>
+  </div>
+  <!-- ===== MENUS ===== -->
+  <div id="menu" class="screen">
+    <div class="panel main">
+      <div class="logo">
+        <div class="logo1">عاصفة النيون</div>
+        <div class="logo2">هجوم الروبوتات</div>
       </div>
-      <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#bcd;margin-top:6px">
-        <input type="checkbox" id="setSound" /> تفعيل الصوت
-      </label>
-      <button class="cta" id="btnSaveSettings" type="button">حفظ الإعدادات</button>
-      <button class="cta ghost" id="btnResetAll" type="button">إعادة تعيين كل البيانات</button>
+      <div class="best">أعلى نتيجة: <b id="bestScore">0</b> · المراحل المكتملة: <b id="bestWave">0</b> · 💰 <b id="menuCoins">0</b></div>
+      <div id="cloudBox" class="cloudbox"></div>
+      <button class="big primary" id="mPlay">▶ العب · الجزر 🏝</button>
+      <button class="big" id="mShop">🛒 المتجر</button>
+      <div class="row">
+        <button class="big" id="mSettings">⚙ الإعدادات</button>
+        <button class="big" id="mHow">؟ طريقة اللعب</button>
+      </div>
+      <button class="small" id="mFs">⛶ ملء الشاشة</button>
+      <div class="foot">مجانية · حفظ سحابي بحساب جوجل · بدون إعلانات</div>
     </div>
   </div>
 
-  <!-- islands modal -->
-  <div class="modal hidden" id="modalIslands">
-    <div class="sheet">
-      <h2>الجزر الخمس <button class="x" data-close="modalIslands" type="button">×</button></h2>
-      <div class="islands-grid" id="islandsGrid"></div>
+  <div id="settings" class="screen hidden">
+    <div class="panel wide">
+      <h2>الإعدادات</h2>
+      <div class="scroll"><div class="grid">
+        <label>حساسية التصويب (لمس) <output id="oSensT"></output><input type="range" id="sSensT" min="0.2" max="3" step="0.05"></label>
+        <label>نعومة الالتفاف <output id="oSmooth"></output><input type="range" id="sSmooth" min="0" max="1" step="0.05"></label>
+        <label>حساسية الماوس <output id="oSensM"></output><input type="range" id="sSensM" min="0.2" max="3" step="0.05"></label>
+        <label>حد الإطارات (FPS)
+          <select id="sFpsCap"><option value="30">30</option><option value="45">45</option><option value="60">60</option><option value="90">90</option><option value="120">120</option><option value="0">بدون حد</option></select>
+        </label>
+        <label>الجودة
+          <select id="sQuality"><option value="auto">تلقائي</option><option value="low">منخفضة</option><option value="med">متوسطة</option><option value="high">عالية</option></select>
+        </label>
+        <label>المنظور
+          <select id="sView"><option value="fp">شخص أول</option><option value="tp">شخص ثالث</option></select>
+        </label>
+        <label>مجال الرؤية (واسع) <output id="oFov"></output><input type="range" id="sFov" min="60" max="110" step="1"></label>
+        <label>مدى الرؤية (بعيد) <output id="oDist"></output><input type="range" id="sDist" min="1" max="3" step="0.25"></label>
+        <label>الصوت العام <output id="oVol"></output><input type="range" id="sVol" min="0" max="1" step="0.05"></label>
+        <label>صوت الموسيقى <output id="oMvol"></output><input type="range" id="sMvol" min="0" max="1" step="0.05"></label>
+        <label>شفافية الأزرار <output id="oBop"></output><input type="range" id="sBop" min="0.25" max="1" step="0.05"></label>
+        <label>حجم أزرار اللمس <output id="oBs"></output><input type="range" id="sBs" min="0.75" max="1.35" step="0.05"></label>
+        <label class="chk"><input type="checkbox" id="sMusic"> الموسيقى</label>
+        <label class="chk"><input type="checkbox" id="sAuto"> إطلاق تلقائي عند التصويب على عدو</label>
+        <label class="chk"><input type="checkbox" id="sAssist"> مساعدة التصويب</label>
+        <label class="chk"><input type="checkbox" id="sUnscope"> فكّ التصويب لما الشخصية تركض</label>
+        <label class="chk"><input type="checkbox" id="sUnreload"> وقف التلقيم لما الشخصية تركض</label>
+        <label class="chk"><input type="checkbox" id="sLeanAim"> الميلان يصوّب (يفعّل المنظار)</label>
+        <label class="chk"><input type="checkbox" id="sInvert"> عكس المحور العمودي</label>
+        <label class="chk"><input type="checkbox" id="sLeftFire"> زر إطلاق إضافي على اليسار</label>
+        <label class="chk"><input type="checkbox" id="sFps"> إظهار عدّاد الإطارات</label>
+        <label class="chk"><input type="checkbox" id="sShake"> اهتزاز الشاشة</label>
+        <label class="chk"><input type="checkbox" id="sVibe"> اهتزاز الجوال</label>
+      </div></div>
+      <div class="row"><button class="big" id="sLayout">🎮 تخصيص أماكن الأزرار</button><button class="big primary" id="setBack">✓ تم</button></div>
     </div>
   </div>
 
-  <!-- shop modal -->
-  <div class="modal hidden" id="modalShop">
-    <div class="sheet">
-      <h2>متجر الترقية <button class="x" data-close="modalShop" type="button">×</button></h2>
-      <div id="shopList"></div>
+  <div id="how" class="screen hidden">
+    <div class="panel wide">
+      <h2>طريقة اللعب</h2>
+      <div class="scroll"><div class="cols">
+        <div>
+          <h3>📱 على الجوال</h3>
+          <ul>
+            <li><b>يسار الشاشة:</b> اسحب للحركة (اسحب لآخر الدائرة للركض)</li>
+            <li><b>يمين الشاشة:</b> اسحب للتصويب والنظر</li>
+            <li><b>إطلاق:</b> اضغط باستمرار، وتقدر تسحب عليه وأنت تطلق</li>
+            <li><b>⟳</b> تلقيم · <b>⤒</b> قفز · <b>»</b> اندفاع</li>
+            <li><b>الرقم</b> تبديل السلاح · <b>A</b> إطلاق تلقائي</li>
+            <li><b>👁</b> منظور أول / ثالث</li>
+            <li>على الآيفون: زر المشاركة ← «إضافة إلى الشاشة الرئيسية» للعب بشاشة كاملة</li>
+          </ul>
+        </div>
+        <div>
+          <h3>⌨ على الكمبيوتر</h3>
+          <ul>
+            <li><b>W A S D</b> حركة · <b>الماوس</b> تصويب</li>
+            <li><b>زر الماوس الأيسر</b> إطلاق · <b>R</b> تلقيم</li>
+            <li><b>Space</b> قفز · <b>Shift</b> ركض · <b>E</b> اندفاع</li>
+            <li><b>1 2 3 4</b> أو العجلة أو <b>Q</b>: تبديل السلاح</li>
+            <li><b>V</b> تبديل المنظور · <b>Esc</b> إيقاف</li>
+          </ul>
+        </div>
+      </div>
+      <div class="cols">
+        <div>
+          <h3>🤖 الأعداء</h3>
+          <ul>
+            <li><b class="c-r">المندفع:</b> سريع ويهجم عن قرب</li>
+            <li><b class="c-s">الجندي:</b> يتخفّى خلف الحواجز ويطلق</li>
+            <li><b class="c-d">المسيّرة:</b> تطير وتلف حولك</li>
+            <li><b class="c-g">المدرّع:</b> درع من الأمام، اضربه بالرأس أو من الجنب</li>
+            <li><b class="c-b">الزعماء:</b> بآخر كل مرحلة زعيم جديد بشكل واسم مختلف، وكل واحد أقوى من اللي قبله. اقفز فوق موجته الأرضية!</li>
+          </ul>
+        </div>
+        <div>
+          <h3>⭐ نصائح</h3>
+          <ul>
+            <li>إصابة الرأس = ضرر مضاعف ونقاط أكثر</li>
+            <li>القتل المتتالي يرفع المضاعِف حتى ×5</li>
+            <li>البراميل الحمراء تنفجر، استغلها!</li>
+            <li>كسّر الصناديق، أحياناً فيها ذخيرة وصحة</li>
+            <li>كل موجتين تختار ترقية جديدة</li>
+            <li>من الموجة 4 بتاخذ قاذف البلازما</li>
+          </ul>
+        </div>
+      </div></div>
+      <button class="big primary" id="howBack">✓ فهمت</button>
     </div>
   </div>
 
-  <!-- missions modal -->
-  <div class="modal hidden" id="modalMissions">
-    <div class="sheet">
-      <h2>المهمات <button class="x" data-close="modalMissions" type="button">×</button></h2>
-      <div id="missionsList"></div>
+  <div id="pause" class="screen hidden">
+    <div class="panel">
+      <h2>إيقاف مؤقت</h2>
+      <button class="big primary" id="pResume">▶ استئناف</button>
+      <button class="big" id="pSettings">⚙ الإعدادات</button>
+      <button class="big" id="pRestart">↺ إعادة المرحلة</button>
+      <button class="big" id="pLevels">🗺 المراحل</button>
+      <button class="big" id="pMenu">⌂ القائمة الرئيسية</button>
     </div>
   </div>
 
-  <script type="module">
-    import { initCloud } from './js/cloud.js';
-    // Minimal runtime hook — gameplay itself remains in game.js (added later)
-    initCloud().catch(console.warn);
-  </script>
+  <div id="perks" class="screen hidden">
+    <div class="panel wide">
+      <h2>اختر ترقية ⚡</h2>
+      <div id="perkcards"></div>
+    </div>
+  </div>
+
+  <div id="levels" class="screen hidden">
+    <div class="panel wide lvlpanel">
+      <h2><span id="lvltitle">المراحل 🗺</span> <small id="lvlcount">0/10</small></h2>
+      <div id="lvlgrid"></div>
+      <div id="lvlmsg" class="lvlmsg"></div>
+      <div class="row"><button class="big" id="lvlBack">‹ الجزر 🏝</button><button class="big" id="lvlShop">🛒 المتجر</button></div>
+    </div>
+  </div>
+
+  <div id="islands" class="screen hidden">
+    <div class="panel wide lvlpanel">
+      <h2>الجزر 🏝 <small id="islcount">0/5</small></h2>
+      <div id="islgrid"></div>
+      <div id="islmsg" class="lvlmsg"></div>
+      <div class="row"><button class="big" id="islBack">⌂ القائمة</button><button class="big" id="islShop">🛒 المتجر</button></div>
+    </div>
+  </div>
+
+  <div id="over" class="screen hidden">
+    <div class="panel">
+      <h2 class="danger" id="oTitle">انتهت اللعبة</h2>
+      <div id="oSub" class="osub hidden"></div>
+      <div id="newrec" class="hidden">🏆 رقم قياسي جديد!</div>
+      <div id="oCoins" class="ocoins"></div>
+      <div class="stats">
+        <div><span>النتيجة</span><b id="oScore">0</b></div>
+        <div><span>المرحلة</span><b id="oWave">0</b></div>
+        <div><span>القتلى</span><b id="oKills">0</b></div>
+        <div><span>الدقة</span><b id="oAcc">0%</b></div>
+        <div><span>إصابات الرأس</span><b id="oHead">0</b></div>
+        <div><span>أعلى نتيجة</span><b id="oBest">0</b></div>
+      </div>
+      <div class="row"><button class="big primary" id="oAgain">↺ أعد المحاولة</button>
+      <button class="big" id="oMenu">🗺 المراحل</button><button class="big" id="oShop">🛒 المتجر</button></div>
+    </div>
+  </div>
+
+  <div id="shop" class="screen hidden">
+    <div class="panel wide shoppanel">
+      <div class="shophead"><button class="small" id="shopBack">⌂ رجوع</button><h2>المتجر 🛒</h2><div class="coinbig">💰 <b id="shopCoins">0</b></div></div>
+      <div id="shopMsg"></div>
+      <div id="shopBody"></div>
+    </div>
+  </div>
+
+  <div id="rotate" class="hidden">
+    <div class="phone"></div>
+    <p>أدر الجوال بالعرض للعب</p>
+    <button class="small" id="rotSkip">متابعة على أي حال</button>
+  </div>
+
+  <div id="loading" class="screen">
+    <div class="spinner"></div>
+    <p id="loadmsg">جاري تحميل الساحة…</p>
+  </div>
+  <noscript><p class="nojs">هذه اللعبة تحتاج تفعيل JavaScript.</p></noscript>
+</div>
 </body>
 </html>
