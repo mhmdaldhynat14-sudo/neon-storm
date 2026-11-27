@@ -315,4 +315,3 @@ export async function initCloud({ onCloudLoaded } = {}) {
     setStatus('📴 وضع بدون نت — الحفظ محلي على جهازك');
   }
 }
-
