@@ -1,6 +1,6 @@
 // cloud.js — تسجيل الدخول بحساب جوجل + الحفظ السحابي التلقائي (Firebase Auth + Firestore)
 const FIREBASE_CONFIG = {
-  "apiKey": "AIzaSyDIWhDYRODtg9YKnicui6ZtwtP2tKRqRWRo8",
+  "apiKey": "***",
   "authDomain": "neon-storm-dd8aa.firebaseapp.com",
   "projectId": "neon-storm-dd8aa",
   "storageBucket": "neon-storm-dd8aa.firebasestorage.app",
@@ -235,27 +235,15 @@ export async function initCloud({ onCloudLoaded } = {}) {
       try { window.open('https://mhmdaldhynat14-sudo.github.io/neon-storm/', '_blank'); } catch (e) {}
       return;
     }
-    setStatus('⏳ جاري فتح حساب جوجل...');
+    setStatus('⏳ جاري التحويل إلى جوجل...');
     const provider = new authMod.GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
-    // Android WebView / mobile: redirect is the only flow that works (popup blocked).
-    if (isWebView || isMobile) {
-      setStatus('⏳ جاري التحويل إلى جوجل...');
-      try { await authMod.signInWithRedirect(auth, provider); } catch (e2) {
-        setStatus('⚠️ افتح اللعبة بمتصفح Chrome لتسجيل الدخول بجوجل');
-      }
-      return;
-    }
+    // Redirect flow everywhere: works in any browser / WebView, not only Chrome.
     try {
-      await authMod.signInWithPopup(auth, provider);
+      await authMod.signInWithRedirect(auth, provider);
     } catch (err) {
       const code = err?.code || '';
-      if (code === 'auth/popup-blocked' || code === 'auth/operation-not-supported-in-this-environment') {
-        setStatus('⏳ جاري التحويل إلى جوجل...');
-        try { await authMod.signInWithRedirect(auth, provider); } catch (e2) {
-          setStatus('⚠️ افتح اللعبة بمتصفح Chrome لتسجيل الدخول بجوجل');
-        }
-      } else if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') {
+      if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') {
         setStatus('تم إلغاء تسجيل الدخول');
       } else {
         console.warn('Google login error:', err);
@@ -327,3 +315,4 @@ export async function initCloud({ onCloudLoaded } = {}) {
     setStatus('📴 وضع بدون نت — الحفظ محلي على جهازك');
   }
 }
+
