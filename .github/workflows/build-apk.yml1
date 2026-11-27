@@ -1,0 +1,42 @@
+push:
+    paths: [".github/workflows/build-apk.yml", "android/**"]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Android SDK manually
+        run: |
+          mkdir -p $ANDROID_HOME/cmdline-tools
+          wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O /tmp/tools.zip
+          unzip -q /tmp/tools.zip -d $ANDROID_HOME/cmdline-tools
+          mv $ANDROID_HOME/cmdline-tools/cmdline-tools $ANDROID_HOME/cmdline-tools/latest
+          yes | sdkmanager --licenses > /dev/null || true
+          sdkmanager "platform-tools" "platforms;android;33" "build-tools;33.0.2" > /dev/null
+
+      - name: Build APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleRelease
+
+      - name: Release v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          APK=android/app/build/outputs/apk/release/app-release.apk
+          ls -la $APK
+          gh release create v2 $APK --title "عاصفة النيون v2" --notes "تسجيل دخول جوجل شغال + وضع أفقي" || gh release upload v2 $APK --clobber
+```
+
+The changes: SDK tools now install manually (the failing step is gone), and the release step retries with upload if the release already exists.
+
+Paste it, hit Commit changes, and tell me. I'll watch the run and confirm the APK lands here:
