@@ -1,0 +1,38 @@
+
+name: Build APK v2
+on:
+  push:
+    paths: [".github/workflows/build-apk.yml", "android/**"]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: android-actions/setup-android@v3
+      - name: Build APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleRelease
+      - name: Release v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          APK=android/app/build/outputs/apk/release/app-release.apk
+          ls -la $APK
+          gh release create v2 $APK --title "عاصفة النيون v2" --notes "تسجيل دخول جوجل شغال + وضع أفقي"
+        continue-on-error: true
+      - name: Force release v2
+        if: failure() || success()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          APK=android/app/build/outputs/apk/release/app-release.apk
+          gh release create v2 $APK --title "عاصفة النيون v2" --notes "تسجيل دخول جوجل شغال + وضع أفقي" || gh release upload v2 $APK --clobber
