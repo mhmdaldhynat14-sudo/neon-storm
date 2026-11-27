@@ -1,6 +1,6 @@
 // cloud.js — تسجيل الدخول بحساب جوجل + الحفظ السحابي التلقائي (Firebase Auth + Firestore)
 const FIREBASE_CONFIG = {
-  "apiKey": "***",
+  "apiKey": "AIzaSyDlTIDoPmp27J42ISs0VhIauIGqZaou8k4",
   "authDomain": "neon-storm-dd8aa.firebaseapp.com",
   "projectId": "neon-storm-dd8aa",
   "storageBucket": "neon-storm-dd8aa.firebasestorage.app",
