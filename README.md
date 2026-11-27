@@ -3,9 +3,8 @@
 لعبة تصويب ثلاثية الأبعاد في ساحة نيون — تعمل مباشرة في المتصفح وكتطبيق أندرويد مستقل بدون إنترنت.
 
 ## تحميل تطبيق الأندرويد (APK)
-- **تحميل مباشر من الإصدار (GitHub Release v1.0.0):** [neon-storm.apk](https://github.com/mhmdaldhynat14-sudo/neon-storm/releases/download/v1.0.0/neon-storm.apk)
-- **صفحة الإصدار:** [v1.0.0 Release](https://github.com/mhmdaldhynat14-sudo/neon-storm/releases/tag/v1.0.0)
-- **رابط مباشر بديل (GitHub Pages):** [neon-storm.apk](https://mhmdaldhynat14-sudo.github.io/neon-storm/neon-storm.apk)
+- **تحميل مباشر من الإصدار (GitHub Release v2):** [neon-storm.apk](https://github.com/mhmdaldhynat14-sudo/neon-storm/releases/download/v2/neon-storm.apk)
+- **صفحة الإصدار:** [v2 Release](https://github.com/mhmdaldhynat14-sudo/neon-storm/releases/tag/v2)
 
 ## العب مباشرة في المتصفح
 - https://mhmdaldhynat14-sudo.github.io/neon-storm/
