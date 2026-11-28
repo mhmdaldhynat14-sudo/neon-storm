@@ -1,4 +1,5 @@
 // cloud.js — تسجيل الدخول بحساب جوجل + الحفظ السحابي التلقائي (Firebase Auth + Firestore)
+// يدعم المتصفح (Popup + Redirect) وتطبيق الأندرويد APK عبر AndroidBridge + Deep Link
 const FIREBASE_CONFIG = {
   "apiKey": "AIzaSyDlTIDoPmp27J42ISs0VhIauIGqZaou8k4",
   "authDomain": "neon-storm-dd8aa.firebaseapp.com",
@@ -111,23 +112,18 @@ function applyStateToLocal(st, uid) {
 }
 
 export async function initCloud({ onCloudLoaded } = {}) {
- const box = document.getElementById('cloudBox');
- if (!box) return;
-
- // --- WebView / environment detection (always keep the button visible) ---
- const ua = (navigator.userAgent || '').toLowerCase();
- const isWebView = /wv|webview/.test(ua) || (ua.includes('android') && !/chrome|crios|fxios/.test(ua));
- const isMobile = /mobile|android|iphone|ipad/.test(ua) || navigator.maxTouchPoints > 0;
- const isLocalAssetOrigin = location.hostname === 'neonstorm.local'
-   || location.hostname === 'localhost'
-   || location.protocol === 'file:';
- box.dataset.env = isLocalAssetOrigin ? 'apk' : (isWebView ? 'webview' : (isMobile ? 'mobile' : 'desktop'));
+  const box = document.getElementById('cloudBox');
+  if (!box) return;
 
   let fbApp, auth, db, authMod, fsMod;
   let currentUser = null;
   let saveTimer = null;
   let dirty = false;
   let syncStatus = '';
+  let sdkLoaded = false;
+
+  let resolveAuthReady;
+  const authReady = new Promise(resolve => { resolveAuthReady = resolve; });
 
   function setStatus(txt) {
     syncStatus = txt;
@@ -225,25 +221,97 @@ export async function initCloud({ onCloudLoaded } = {}) {
     }
   }
 
+  async function loadFirebase() {
+    if (sdkLoaded && auth && db && authMod && fsMod) return true;
+    const [appMod, aMod, fMod] = await Promise.all([
+      import(`${FB_BASE}/firebase-app.js`),
+      import(`${FB_BASE}/firebase-auth.js`),
+      import(`${FB_BASE}/firebase-firestore.js`),
+    ]);
+    authMod = aMod;
+    fsMod = fMod;
+    fbApp = appMod.initializeApp(FIREBASE_CONFIG);
+    auth = aMod.getAuth(fbApp);
+    db = fMod.getFirestore(fbApp);
+    sdkLoaded = true;
+
+    // Complete redirect flow if returning from signInWithRedirect on web
+    aMod.getRedirectResult(auth).catch(() => {});
+
+    aMod.onAuthStateChanged(auth, async user => {
+      currentUser = user || null;
+      renderUI();
+      if (currentUser) await syncOnLogin(currentUser);
+    });
+    return true;
+  }
+
+  // Register Android APK deep-link callback BEFORE Firebase finishes loading
+  window.__onAndroidGoogleAuth = async (idToken, accessToken) => {
+    setStatus('⏳ جاري تأكيد حساب جوجل...');
+    try {
+      await authReady;
+      if (!auth || !authMod) {
+        await loadFirebase();
+      }
+      if (!auth || !authMod) {
+        setStatus('⚠️ تسجيل الدخول يحتاج اتصال بالإنترنت');
+        return;
+      }
+      if (!idToken && !accessToken) {
+        setStatus('⚠️ لم يصل رمز التحقق من المتصفح — جرّب مرة أخرى');
+        return;
+      }
+      const cred = authMod.GoogleAuthProvider.credential(idToken || null, accessToken || null);
+      await authMod.signInWithCredential(auth, cred);
+    } catch (err) {
+      console.warn('Android Google auth error:', err);
+      const code = err?.code || '';
+      setStatus('⚠️ تعذر تأكيد حساب جوجل (' + (code || 'تحقق من الإنترنت') + ')');
+    }
+  };
+
+  // Flush any pending Android auth tokens delivered before initCloud ran
+  if (window.__pendingAndroidGoogleAuth) {
+    const pending = window.__pendingAndroidGoogleAuth;
+    window.__pendingAndroidGoogleAuth = null;
+    window.__onAndroidGoogleAuth(pending.idToken || '', pending.accessToken || '');
+  }
+
   async function handleSignIn() {
+    // Inside Android APK: open external browser helper to avoid Google WebView 403 block
+    if (window.AndroidBridge && typeof window.AndroidBridge.startGoogleLogin === 'function') {
+      setStatus('⏳ أكمل تسجيل الدخول بالمتصفح ثم ارجع للعبة...');
+      try {
+        window.AndroidBridge.startGoogleLogin();
+      } catch (err) {
+        console.warn('AndroidBridge.startGoogleLogin error:', err);
+        setStatus('⚠️ تعذر فتح المتصفح لتسجيل الدخول');
+      }
+      return;
+    }
+
     if (!auth || !authMod) {
-      setStatus('⚠️ تسجيل الدخول يحتاج اتصال بالإنترنت');
-      return;
+      try {
+        await loadFirebase();
+      } catch {
+        setStatus('⚠️ تسجيل الدخول يحتاج اتصال بالإنترنت');
+        return;
+      }
     }
-    if (isLocalAssetOrigin) {
-      setStatus('افتح اللعبة من المتصفح لتسجيل الدخول: https://mhmdaldhynat14-sudo.github.io/neon-storm/');
-      try { window.open('https://mhmdaldhynat14-sudo.github.io/neon-storm/', '_blank'); } catch (e) {}
-      return;
-    }
-    setStatus('⏳ جاري التحويل إلى جوجل...');
+    setStatus('⏳ جاري فتح حساب جوجل...');
     const provider = new authMod.GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
-    // Redirect flow everywhere: works in any browser / WebView, not only Chrome.
     try {
-      await authMod.signInWithRedirect(auth, provider);
+      await authMod.signInWithPopup(auth, provider);
     } catch (err) {
       const code = err?.code || '';
-      if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') {
+      if (code === 'auth/popup-blocked' || code === 'auth/operation-not-supported-in-this-environment') {
+        setStatus('⏳ جاري التحويل إلى جوجل...');
+        try { await authMod.signInWithRedirect(auth, provider); } catch (e2) {
+          setStatus('⚠️ افتح اللعبة بمتصفح Chrome لتسجيل الدخول بجوجل');
+        }
+      } else if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') {
         setStatus('تم إلغاء تسجيل الدخول');
       } else {
         console.warn('Google login error:', err);
@@ -277,41 +345,11 @@ export async function initCloud({ onCloudLoaded } = {}) {
 
   // Load Firebase SDK dynamically so offline play never breaks
   try {
-    const [appMod, aMod, fMod] = await Promise.all([
-      import(`${FB_BASE}/firebase-app.js`),
-      import(`${FB_BASE}/firebase-auth.js`),
-      import(`${FB_BASE}/firebase-firestore.js`),
-    ]);
-    authMod = aMod;
-    fsMod = fMod;
-    fbApp = appMod.initializeApp(FIREBASE_CONFIG);
-    auth = aMod.getAuth(fbApp);
-    db = fMod.getFirestore(fbApp);
-
-    // Complete redirect flow if returning from signInWithRedirect.
-    // In a WebView this navigation may leave the page and the result can come
-    // back on a different origin / be dropped, so treat null as still-loading.
-    try {
-      const redirectResult = await aMod.getRedirectResult(auth);
-      if (redirectResult && redirectResult.user) {
-        currentUser = redirectResult.user;
-        renderUI();
-        await syncOnLogin(currentUser);
-      }
-    } catch (redirectErr) {
-      console.warn('[Cloud] getRedirectResult error', redirectErr);
-      if (redirectErr && redirectErr.code === 'auth/unauthorized-domain') {
-        setStatus('⚠️ هذا النطاق غير مصرح به في Firebase — افتح اللعبة من الرابط الرسمي');
-      }
-    }
-
-    aMod.onAuthStateChanged(auth, async user => {
-      currentUser = user || null;
-      renderUI();
-      if (currentUser) await syncOnLogin(currentUser);
-    });
+    await loadFirebase();
   } catch (err) {
     console.warn('Firebase offline/unavailable:', err);
     setStatus('📴 وضع بدون نت — الحفظ محلي على جهازك');
+  } finally {
+    resolveAuthReady();
   }
 }
