@@ -1,12 +1,14 @@
 import * as THREE from '../three.module.min.js';
 import { World, makeTextures, makeSky, ARENA, THEMES, applySkyTheme } from './world.js';
 import { FX } from './fx.js';
-import { WEAPONS, Viewmodel, buildGun } from './weapons.js';
-import { Enemies, Projectiles, TYPES, bossFor } from './enemies.js';
-import { Shop, SHOP_WEAPONS, SHOP_NEW } from './shop.js';
+import { WEAPONS, Viewmodel, buildGun, applyWeaponSkin } from './weapons.js';
+import { Enemies, Projectiles, TYPES, BOSSES, bossFor } from './enemies.js';
+import { Shop, SHOP_WEAPONS, SHOP_NEW, SKINS, HEAD_FX } from './shop.js';
 import { Sound } from './audio.js';
 import { Input } from './input.js';
-import { initCloud } from './cloud.js';
+import { initCloud, Cloud, submitLeaderboard, fetchLeaderboard } from './cloud.js';
+import { Daily } from './daily.js';
+import { shareResultCard, renderResultCardCanvas } from './share.js';
 
 const $ = id => document.getElementById(id);
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
@@ -116,6 +118,17 @@ function buildPlayerModel() {
   scene.add(g); return { g, legs, torso, arms, head, guns, blob, anim: 0 };
 }
 const PM = buildPlayerModel();
+function applyAllSkins() {
+  const sk = Shop.skinDef();
+  vm.applySkin(sk);
+  for (const g of PM.guns) applyWeaponSkin(g, sk);
+}
+function notifyQuestDone(q) {
+  if (!q) return;
+  feed(`🎁 مهمة مكتملة: ${q.title} (+${q.reward} 💰)`, true);
+  sound.play('streak');
+  updateDailyDot();
+}
 
 // ---------- input ----------
 const input = new Input(canvas, S, isTouch, () => G.mode === 'play');
@@ -212,19 +225,25 @@ function setBossBar(B) { const nm = H.boss.querySelector('.name'); if (nm) { nm.
 function updateShockwaves(dt) { for (let i = shockwaves.length - 1; i >= 0; i--) { const s = shockwaves[i]; s.r += s.speed * dt; if (!s.hit && P.alive) { const d = Math.hypot(P.pos.x - s.x, P.pos.z - s.z); if (Math.abs(d - s.r) < 1.0 && P.pos.y - s.y < 0.7) { s.hit = true; G.damagePlayer(26 * (enemies.boss ? enemies.boss.dmgMul : 1), new THREE.Vector3(s.x, 0, s.z)); P.vel.y = 6; P.onGround = false; } } if (s.r > s.max) shockwaves.splice(i, 1); } }
 G.onGrenade = () => { if (!G.nadeWarned) { G.nadeWarned = true; feed('⚠ قنبلة! تحرّك', true); } };
 G.summonAround = (pos, type, n) => { for (let i = 0; i < n; i++) { const p = world.randomOpenPoint(pos.x, pos.z, 5); enemies.spawn(type, p, { aware: true, hpMul: diff().hp, dmgMul: diff().dmg, level: G.wave, isl: islOf(G.gl || 1) }); } };
-G.addScore = (pts, useMult = true) => { const v = Math.round(pts * (useMult ? G.mult : 1)); G.score += v; return v; };
+G.addScore = (pts, useMult = true) => { const em = G.endless ? (G.endlessMult || 1) : 1; const v = Math.round(pts * (useMult ? G.mult : 1) * em); G.score += v; return v; };
 const STREAK = { 2: 'قتل مزدوج!', 3: 'قتل ثلاثي!', 5: 'سلسلة نارية! 🔥', 8: 'لا يمكن إيقافك!', 12: 'أسطورة الساحة!', 16: 'وحش!!', 20: 'إله الحرب!' };
 G.onEnemyKilled = (e, info) => {
   if (e.demo) return;
   G.kills++; G.streak++; G.streakT = 4; G.mult = 1 + Math.min(8, G.streak - 1) * 0.5;
-  let pts = e.T.score * (1 + (G.wave - 1) * 0.1); if (info.head) pts *= 1.5;
-  const v = G.addScore(pts); feed(`${info.head ? 'إصابة رأس! ' : ''}+${v}`, info.head);
+  let pts = e.T.score * (1 + (G.wave - 1) * 0.1); if (info && info.head) pts *= 1.5;
+  const v = G.addScore(pts); feed(`${info && info.head ? 'إصابة رأس! ' : ''}+${v}`, !!(info && info.head));
+  if (info && info.head) {
+    const hPos = info.pos || new THREE.Vector3(e.pos.x, e.pos.y + (e.T.h || 1.4), e.pos.z);
+    fx.headshotBurst(hPos, Shop.headFx());
+  }
   if (STREAK[G.streak]) { feed(STREAK[G.streak], true); sound.play('streak'); }
   if (!spawnQueue.length && enemies.alive() === 0 && e.type !== 'boss') G.slowmo = Math.max(G.slowmo || 0, 0.45);
   H.combo.classList.remove('bump'); void H.combo.offsetWidth; H.combo.classList.add('bump');
   const cn = Shop.killCoins(e.type); Shop.add(cn); coinPop(cn);
   sound.play('kill'); dropPickup(e.pos, e.type === 'boss' ? 1 : e.type === 'brute' ? 0.7 : 0.2); if (P.perk.leech) P.hp = Math.min(P.maxHp, P.hp + P.perk.leech);
   if (e.type === 'boss') { G.slowmo = 1.2; announce(`سقط ${e.T.name}!`, `+${v} · +${cn} 💰`); dropPickup(e.pos.clone().add(new THREE.Vector3(1.5, 0, 0)), 1); dropPickup(e.pos.clone().add(new THREE.Vector3(-1.5, 0, 0)), 1); H.boss.classList.add('hidden'); }
+  const doneQs = Daily.onKill({ head: !!(info && info.head), boss: e.type === 'boss' });
+  for (const q of doneQs) notifyQuestDone(q);
 };
 
 // ---------- waves ----------
@@ -253,9 +272,48 @@ const islDone = i => { let n = 0; for (let l = 1; l <= LPI; l++) if (beatenLvl(g
 
 
 function markBeaten(gl) { if (!PROG.b.includes(gl)) PROG.b.push(gl); if (gl >= TOTAL) PROG.won = true; LS.set(PKEY, PROG); }
-function diff() { const w = G.wave, gl = G.gl || 1; return { hp: (1 + (w - 1) * 0.11) * (1 + (gl - 1) * 0.01), dmg: (1 + (w - 1) * 0.07) * (1 + (gl - 1) * 0.008), speed: 1 + Math.min(0.3, (w - 1) * 0.025) }; }
+function endlessMult(w) { return 1 + Math.max(0, (w | 0) - 1) * 0.5; }
+function endlessBossIdx(w) { return ((Math.max(1, Math.floor(w / 3)) - 1) % BOSSES.length) + 1; }
+function diff() {
+  const w = G.wave, gl = G.gl || 1;
+  if (G.endless) {
+    return { hp: 1 + (w - 1) * 0.16, dmg: 1 + (w - 1) * 0.09, speed: 1 + Math.min(0.45, (w - 1) * 0.03) };
+  }
+  return { hp: (1 + (w - 1) * 0.11) * (1 + (gl - 1) * 0.01), dmg: (1 + (w - 1) * 0.07) * (1 + (gl - 1) * 0.008), speed: 1 + Math.min(0.3, (w - 1) * 0.025) };
+}
 let spawnQueue = [], spawnT = 0, intermission = 0, maxAlive = 6;
 function startWave(k) {
+  if (G.endless) {
+    G.waveIn = k; G.wave = k; G.nW = Infinity; G.endlessMult = endlessMult(k);
+    const thIdx = Math.floor((k - 1) / 5) % THEMES.length;
+    const themeChanged = k > 1 && (k - 1) % 5 === 0;
+    if (themeChanged || !G.theme) {
+      G.theme = world.setTheme(thIdx);
+      applyTheme(G.theme);
+      if (themeChanged) world.restoreProps();
+    }
+    const TH = G.theme || THEMES[0];
+    const boss = k % 3 === 0;
+    let r = 2 + Math.floor(k * 1.35), s = 1 + Math.floor(k * 0.95), d = k >= 2 ? Math.floor(k * 0.7) : 0, br = k >= 4 ? Math.floor((k - 2) / 2) : 0;
+    if (boss) { r = Math.ceil(r * 0.45); s = Math.ceil(s * 0.45); d = Math.ceil(d * 0.45); br = Math.floor(br * 0.5); }
+    spawnQueue = [];
+    for (let i = 0; i < r; i++) spawnQueue.push('rusher');
+    for (let i = 0; i < s; i++) spawnQueue.push('soldier');
+    for (let i = 0; i < d; i++) spawnQueue.push('drone');
+    for (let i = 0; i < br; i++) spawnQueue.push('brute');
+    for (let i = spawnQueue.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0; [spawnQueue[i], spawnQueue[j]] = [spawnQueue[j], spawnQueue[i]]; }
+    if (boss) spawnQueue.unshift('boss');
+    maxAlive = Math.min(6 + k, 16); spawnT = 1.1;
+    const subParts = [`مضاعف النقاط ×${G.endlessMult.toFixed(1)}`, `${spawnQueue.length} أعداء`];
+    if (boss) subParts.unshift(`⚠ زعيم قادم: ${bossFor(endlessBossIdx(k)).name} 👑`);
+    if (themeChanged) subParts.push(`ساحة جديدة: ${TH.emoji} ${TH.name}`);
+    announce(`♾️ البقاء · الموجة ${k}`, subParts.join(' · '));
+    sound.play(boss ? 'boss' : 'wave');
+    G.waveTotal = spawnQueue.length; G.waveKilled0 = G.kills;
+    WEAPONS.forEach((w, lw) => { if (w.unlockWave && !w.price && w.unlockWave <= k && P.weapons[lw] && !P.weapons[lw].owned) { P.weapons[lw].owned = true; setTimeout(() => { feed(`سلاح جديد: ${w.name}!`, true); sound.play('pickup'); }, 1800); } });
+    return;
+  }
+
   const gl = G.gl || 1; G.waveIn = k; G.nW = nWaves(gl); const n = G.wave = ewBase(gl) + k - 1; const boss = isBossLvl(gl) && k >= G.nW; const TH = G.theme || THEMES[0], lv = lvOf(gl);
 
   let r = 2 + Math.floor(n * 1.3), s = 1 + Math.floor(n * 0.9), d = n >= 3 ? Math.floor((n - 1) * 0.75) : 0, br = n >= 6 ? Math.floor((n - 4) / 2) : 0;
@@ -283,12 +341,27 @@ function updateWaves(dt) {
   spawnT -= dt;
   if (spawnQueue.length && spawnT <= 0 && enemies.alive() < maxAlive) {
     const type = spawnQueue.shift(); const df = diff(); const pos = pickSpawn();
-    const BS = type === 'boss' ? bossFor(bossIdx(G.gl || 1)) : null;
-    enemies.spawn(type, pos, { boss: BS, hpMul: df.hp * (BS ? BS.hp : 1), dmgMul: df.dmg * (BS ? BS.dmg : 1), speedMul: BS ? 1 : df.speed, level: G.wave, isl: islOf(G.gl || 1), aware: G.wave > 1 && Math.random() < 0.5 });
-    if (BS) { setBossBar(BS); H.boss.classList.remove('hidden'); announce(`${BS.name}!`, bossIdx(G.gl || 1) === 1 ? 'اقفز فوق الموجة الأرضية 🦘' : `زعيم ${(G.theme || THEMES[0]).name} · أقوى من اللي قبله 💪`); }
-    spawnT = Math.max(0.35, 1.2 - G.wave * 0.06) * (0.7 + Math.random() * 0.6);
+    const bIdx = G.endless ? endlessBossIdx(G.wave || 3) : bossIdx(G.gl || 1);
+    const BS = type === 'boss' ? bossFor(bIdx) : null;
+    const islNum = G.endless ? ((Math.floor((G.wave - 1) / 5) % ISL) + 1) : islOf(G.gl || 1);
+    enemies.spawn(type, pos, { boss: BS, hpMul: df.hp * (BS ? BS.hp : 1), dmgMul: df.dmg * (BS ? BS.dmg : 1), speedMul: BS ? 1 : df.speed, level: G.wave, isl: islNum, aware: G.wave > 1 && Math.random() < 0.5 });
+    if (BS) { setBossBar(BS); H.boss.classList.remove('hidden'); announce(`${BS.name}!`, bIdx === 1 ? 'اقفز فوق الموجة الأرضية 🦘' : `زعيم ${(G.theme || THEMES[0]).name} · أقوى من اللي قبله 💪`); }
+    spawnT = Math.max(0.32, 1.2 - G.wave * 0.055) * (0.7 + Math.random() * 0.6);
   }
   if (!spawnQueue.length && enemies.alive() === 0) {
+    for (const q of Daily.onWaveClear()) notifyQuestDone(q);
+    if (G.endless) {
+      const bonus = G.addScore(500 * G.wave, false);
+      const waveCoins = 40 + G.wave * 20;
+      Shop.add(waveCoins); coinPop(waveCoins);
+      announce(`اكتملت الموجة ${G.wave}! 🔥`, `+${bonus} نقطة · +${waveCoins} 💰`);
+      sound.play('waveClear');
+      intermission = 6; P.hp = Math.min(P.maxHp, P.hp + 20);
+      if (G.wave % 2 === 0) { setTimeout(offerPerks, 1400); world.restoreProps(); }
+      LS.set('ns_endless_wave', Math.max(LS.get('ns_endless_wave', 0), G.wave));
+      LS.set('ns_endless_best', Math.max(LS.get('ns_endless_best', 0), G.score));
+      return;
+    }
     const lvlDone = (G.waveIn || 1) >= (G.nW || 1), gl = G.gl || 1;
     if (lvlDone) { G.addScore((gl >= TOTAL ? 5000 : 1500) * Math.ceil(gl / 5) + 400 * G.wave, false); sound.play('waveClear'); levelDone(gl); return; }
     const bonus = G.addScore(400 * G.wave, false);
@@ -365,7 +438,7 @@ function fire() {
       if (w.tracer && (n === 1 || i % 3 === 0)) fx.tracer(_mz, end, w.color, w.tracer, n === 1 ? 0.07 : 0.05);
     }
     for (const [e, rec] of hitE) {
-      const info = { head: rec.head, weapon: w.id, dir: rec.dir }; const k = enemies.damage(e, rec.dmg, info);
+      const info = { head: rec.head, weapon: w.id, dir: rec.dir, pos: rec.pos }; const k = enemies.damage(e, rec.dmg, info);
       dmgNumber(rec.pos, info.shielded ? rec.dmg * 0.3 : rec.dmg, rec.head); if (rec.head) { G.heads++; headHit = true; } if (k === true) killed = true; dmgSum += rec.dmg;
       if (info.shielded) { fx.burst(rec.pos, [-rec.dir.x, 0, -rec.dir.z], '#7ff8ff', 8, 6, 0.12, 0.3); sound.play('shieldHit'); shieldHit = true; } else sound.play('metal', G.spatial(rec.pos));
     }
@@ -520,7 +593,7 @@ function updateHUD(dt) {
   const hp = Math.ceil(P.hp), ar = Math.ceil(P.armor);
   const hpp = Math.round(hp / P.maxHp * 100) + '%'; setStyle(H.hpfill, 'hpw', 'width', hpp); setStyle(H.hpghost, 'hpg', 'width', hpp); setText(H.hpnum, 'hp', String(hp)); H.hpfill.classList.toggle('low', hp <= 30);
   setStyle(H.arfill, 'arw', 'width', Math.min(100, ar / Shop.armorCap() * 100) + '%'); setText(H.arnum, 'ar', String(ar));
-  setText(H.wavenum, 'wave', `${(G.theme || THEMES[0]).emoji} ${lvOf(G.gl || 1)} - موجة ${G.waveIn || 1}/${G.nW || 1}`); setText(H.score, 'score', G.score.toLocaleString('en-US'));
+  setText(H.wavenum, 'wave', G.endless ? `♾️ موجة ${G.wave || 1} · ×${(G.endlessMult || 1).toFixed(1)}` : `${(G.theme || THEMES[0]).emoji} ${lvOf(G.gl || 1)} - موجة ${G.waveIn || 1}/${G.nW || 1}`); setText(H.score, 'score', G.score.toLocaleString('en-US'));
   setText(H.combo, 'combo', G.streak >= 2 ? `×${G.mult.toFixed(1)} سلسلة ${G.streak}` : '');
   setText(H.enum, 'enum', String(enemies.alive() + spawnQueue.length)); setText(H.coins, 'coins', String(Shop.coins));
   const W = P.weapons[P.cur]; setText(H.wname, 'wn', W.def.name); setText(H.mag, 'mag', String(W.mag)); setText(H.reserve, 'res', '/ ' + (W.reserve === Infinity ? '∞' : W.reserve));
@@ -617,7 +690,7 @@ function updateEnemyBars(dt) {
 }
 
 // ---------- screens ----------
-const screens = ['menu', 'settings', 'how', 'pause', 'over', 'perks', 'layoutEd', 'levels', 'shop', 'islands'];
+const screens = ['menu', 'settings', 'how', 'pause', 'over', 'perks', 'layoutEd', 'levels', 'shop', 'islands', 'leaderboard', 'daily'];
 let settingsReturn = 'menu';
 function show(id) { for (const s of screens) $(s).classList.toggle('hidden', s !== id); }
 function updateBest() { $('menuCoins').textContent = Shop.coins.toLocaleString('en-US'); $('bestScore').textContent = LS.get('ns_best', 0).toLocaleString('en-US'); $('bestWave').textContent = `${PROG.b.length}/${TOTAL}`; }
@@ -660,10 +733,19 @@ function resetGame() {
   world.restoreProps(); resetPickups();
   Object.assign(P, { maxHp: 100 + AS.hp + Shop.heartHp(), dr: AS.dr, perk: { dmg: 1, head: 1, reload: 1, speed: 1, mag: 1, leech: 0, dash: 1, regen: 0 }, perks: [], hp: 100 + AS.hp + Shop.heartHp(), armor: 25 + Shop.shieldStart(), alive: true, deathT: 0, recoil: 0, bloom: 0, dashCD: 0, invuln: 0, reloadT: -1, swapT: 0, fireCD: 0.3, cur: 0, ads: 0, scoped: false, prone: false, hk: 1, autoRun: false, pitch: -0.12, yaw: Math.PI, shake: 0, lastHurt: 0 });
   P.pos.set(1.6, 3, 1.8); P.vel.set(0, 0, 0); P.yaw = Math.PI; P.view = S.view; P.weapons = WEAPONS.map(w => { const d = Shop.def(w); return { def: d, mag: d.mag, reserve: d.reserve, owned: Shop.owned(w) }; });
-  vm.setWeapon(0, true); PM.guns.forEach((g, k) => g.group.visible = k === 0); PM.g.rotation.z = 0;
+  vm.setWeapon(0, true); PM.guns.forEach((g, k) => g.group.visible = k === 0); PM.g.rotation.z = 0; applyAllSkins();
   Object.assign(G, { nadeWarned: false, wave: 0, score: 0, kills: 0, heads: 0, shots: 0, hits: 0, streak: 0, streakT: 0, mult: 1, slowmo: 0 });
   intermission = 0; spawnQueue = [];
   H.boss.classList.add('hidden'); for (const k in last) delete last[k]; for (const b of ehpPool) { b.on = false; b.el.style.opacity = 0; }
+}
+function startEndless() {
+  sound.init(); sound.setVolume(S.vol); sound.setMusic(S.music);
+  resetGame();
+  G.endless = true; G.endlessMult = 1; G.gl = 1; G.level = 1;
+  G.theme = world.setTheme(0); applyTheme(G.theme);
+  G.mode = 'play'; show(null); H.hud.classList.remove('hidden'); input.setTouchVisible(input.touchMode); applyHudSettings();
+  startWave(1); input.lock();
+  const hc = LS.get('ns_hint', 0); if (input.touchMode && hc < 3) { LS.set('ns_hint', hc + 1); hintT = 7; $('hints').classList.remove('hidden'); } else $('hints').classList.add('hidden');
 }
 function startGame(lvl) {
   sound.init(); sound.setVolume(S.vol); sound.setMusic(S.music);
@@ -672,7 +754,7 @@ function startGame(lvl) {
   let gl = clamp((lvl | 0) || G.gl || 1, 1, TOTAL);
   if (useBoss) { gl = glOf(Math.ceil(dbgB / 2), dbgB % 2 ? 5 : 10); G.bossUsed = true; }
   else if (useHook) { gl = glOf(dbgI, clamp(+(qs.get('level') || 1) | 0, 1, LPI)); G.hookUsed = true; }
-  resetGame(); G.gl = gl; G.level = gl; G.selIsl = islOf(gl); G.theme = world.setTheme(islOf(gl) - 1); applyTheme(G.theme);
+  resetGame(); G.endless = false; G.endlessMult = 1; G.gl = gl; G.level = gl; G.selIsl = islOf(gl); G.theme = world.setTheme(islOf(gl) - 1); applyTheme(G.theme);
   G.mode = 'play'; show(null); H.hud.classList.remove('hidden'); input.setTouchVisible(input.touchMode); applyHudSettings();
   const eb = ewBase(gl); P.weapons.forEach(w => { if (w.def.unlockWave && !w.def.price && w.def.unlockWave < eb) w.owned = true; });
   startWave(useBoss ? nWaves(gl) : 1); if (dbgB || dbgI || qs.has('debug')) window.__ns = { G, P, enemies, fire, applySkill, levelDone, openLevels, openIslands, startGame, PROG, world, isBossLvl, bossIdx, nWaves, dbgWave(k) { enemies.clear(); intermission = 0; startWave(k); }, dbgQueue: () => spawnQueue.slice(), fire, applySkill }; input.lock();
@@ -681,15 +763,21 @@ function startGame(lvl) {
 function pauseGame() { if (G.mode !== 'play') return; G.mode = 'paused'; show('pause'); input.unlock(); input.reset(); }
 function resumeGame() { if (G.mode !== 'paused') return; G.mode = 'play'; show(null); input.lock(); last.t = performance.now(); }
 function toMenu() { G.mode = 'menu'; show('menu'); H.hud.classList.add('hidden'); input.unlock(); enemies.clear(); projectiles.clear(); world.restoreProps(); spawnDemo(); updateBest(); sound.setIntensity(0); }
+function resetShareUI() { const fb = $('shareFeedback'); if (fb) { fb.innerHTML = ''; fb.classList.add('hidden'); } }
 function levelDone(gl) {
   P.invuln = 999; input.unlock(); input.reset(); G.slowmo = 1.2; spawnQueue = []; intermission = 1e9; markBeaten(gl);
   const last = gl >= TOTAL, I = islOf(gl), lv = lvOf(gl), th = THEMES[I - 1], newIsl = lv === LPI && !last, nth = newIsl ? THEMES[I] : null, boss = isBossLvl(gl);
   const title = `${th.name} – المرحلة ${lv} خلصت ✅`;
   announce(last ? '🏆 فزت!' : title, last ? 'خلصت الجزر الخمسة كلها' : newIsl ? `فتحت جزيرة جديدة 🏝 ${nth.emoji} ${nth.name}` : `انفتحت المرحلة ${lv + 1} 🔓`);
-  const best = LS.get('ns_best', 0), rec = G.score > best; if (rec) LS.set('ns_best', G.score); LS.set('ns_best_wave', Math.max(LS.get('ns_best_wave', 0), G.wave));
+  const best = LS.get('ns_best', 0), rec = G.score > best; if (rec) LS.set('ns_best', G.score);
+  const bestW = Math.max(LS.get('ns_best_wave', 0), G.wave); LS.set('ns_best_wave', bestW);
   const lc = 150 + 10 * gl + (boss ? 100 : 0); Shop.add(lc);
+  Daily.onGameFinish(); updateDailyDot();
+  submitLeaderboard({ bestScore: Math.max(best, G.score), bestWave: bestW });
   setTimeout(() => {
+    resetShareUI();
     $('oCoins').textContent = `💰 +${lc} من المرحلة · الرصيد ${Shop.coins.toLocaleString('en-US')}`; $('oShop').classList.remove('hidden');
+    $('oMenu').textContent = '🗺 المراحل';
     G.mode = 'over'; G.overKind = last ? 'win' : 'next'; $('oTitle').textContent = last ? '🏆 فزت! خلصت كل الجزر' : title; $('oTitle').className = 'win';
     const parts = []; if (boss) parts.push(`هزمت ${bossFor(bossIdx(gl)).name} 👑`);
     if (last) parts.push('خلصت الخمسين مرحلة 🏆'); else if (newIsl) parts.push(`فتحت جزيرة جديدة 🏝 ${nth.emoji} ${nth.name}`); else parts.push(`انفتحت المرحلة ${lv + 1} 🔓`);
@@ -701,9 +789,35 @@ function levelDone(gl) {
 function fillStats(best, rec) { $('oScore').textContent = G.score.toLocaleString('en-US'); $('oKills').textContent = G.kills; $('oAcc').textContent = (G.shots ? Math.round(G.hits / G.shots * 100) : 0) + '%'; $('oHead').textContent = G.heads; $('oBest').textContent = Math.max(best, G.score).toLocaleString('en-US'); $('newrec').classList.toggle('hidden', !rec); }
 function die() {
   P.alive = false; P.deathT = 0; sound.play('gameover'); input.unlock();
-  const best = LS.get('ns_best', 0), rec = G.score > best; if (rec) LS.set('ns_best', G.score); LS.set('ns_best_wave', Math.max(LS.get('ns_best_wave', 0), G.wave));
+  Daily.onGameFinish(); updateDailyDot();
+  if (G.endless) {
+    const best = LS.get('ns_endless_best', 0), rec = G.score > best;
+    if (rec) LS.set('ns_endless_best', G.score);
+    const bestW = Math.max(LS.get('ns_endless_wave', 0), G.wave || 1);
+    LS.set('ns_endless_wave', bestW);
+    submitLeaderboard({ endlessScore: Math.max(best, G.score), endlessWave: bestW });
+    setTimeout(() => {
+      resetShareUI();
+      $('oCoins').textContent = `💰 الرصيد ${Shop.coins.toLocaleString('en-US')}`; $('oShop').classList.remove('hidden');
+      $('oMenu').textContent = '⌂ القائمة';
+      G.mode = 'over'; G.overKind = 'endless';
+      $('oTitle').textContent = '♾️ انتهى البقاء!'; $('oTitle').className = 'danger';
+      $('oSub').textContent = `♾️ البقاء اللانهائي · موجة ${G.wave || 1} · مضاعف ×${(G.endlessMult || 1).toFixed(1)}`;
+      $('oSub').classList.remove('hidden');
+      $('oAgain').textContent = '↺ أعد البقاء';
+      fillStats(best, rec);
+      $('oWave').textContent = `♾️ موجة ${G.wave || 1}`;
+      show('over'); H.hud.classList.add('hidden');
+    }, 1600);
+    return;
+  }
+  const best = LS.get('ns_best', 0), rec = G.score > best; if (rec) LS.set('ns_best', G.score);
+  const bestW = Math.max(LS.get('ns_best_wave', 0), G.wave); LS.set('ns_best_wave', bestW);
+  submitLeaderboard({ bestScore: Math.max(best, G.score), bestWave: bestW });
   setTimeout(() => {
-    $('oCoins').textContent = `💰 الرصيد ${Shop.coins.toLocaleString('en-US')}`; $('oShop').classList.add('hidden');
+    resetShareUI();
+    $('oCoins').textContent = `💰 الرصيد ${Shop.coins.toLocaleString('en-US')}`; $('oShop').classList.remove('hidden');
+    $('oMenu').textContent = '🗺 المراحل';
     G.mode = 'over'; G.overKind = 'retry'; $('oTitle').textContent = 'خسرت 💥'; $('oTitle').className = 'danger'; $('oSub').textContent = `${(G.theme || THEMES[0]).name} · المرحلة ${lvOf(G.gl || 1)} · الموجة ${G.waveIn || 1}/${G.nW || 1}`; $('oSub').classList.remove('hidden');
     $('oAgain').textContent = '↺ أعد المحاولة'; fillStats(best, rec); $('oWave').textContent = `${(G.theme || THEMES[0]).emoji} ${lvOf(G.gl || 1)} - موجة ${G.waveIn || 1}/${G.nW || 1}`; show('over'); H.hud.classList.add('hidden');
   }, 1600);
@@ -728,14 +842,51 @@ const click = (id, fn) => $(id).addEventListener('click', e => { e.preventDefaul
 click('mPlay', () => { const q = new URLSearchParams(location.search), d = +(q.get('boss') || 0), di = +(q.get('island') || 0); if ((d >= 1 && d <= 10 && !G.bossUsed) || (di >= 1 && di <= ISL && !G.hookUsed)) { tryFullscreen(); startGame(); } else openIslands(); });
 click('islBack', toMenu); click('islShop', () => openShop('islands'));
 click('lvlBack', openIslands);
-// ===== المتجر =====
-let shopFrom = 'menu';
+// ===== المتجر (أسلحة + سكنات وتأثيرات) =====
+let shopFrom = 'menu', shopTab = 'gear';
 function coinPop(n) { const d = document.createElement('div'); d.className = 'cpop'; d.textContent = `+${n} 💰`; H.coinbox.appendChild(d); setTimeout(() => d.remove(), 900); }
-function openShop(from) { shopFrom = from; $('shopMsg').textContent = ''; renderShop(); show('shop'); }
+function openShop(from, tab) { shopFrom = from; if (tab) shopTab = tab; $('shopMsg').textContent = ''; updateShopTabs(); renderShop(); show('shop'); }
 function closeShop() { if (shopFrom === 'levels') openLevels(); else if (shopFrom === 'islands') openIslands(); else if (shopFrom === 'over') show('over'); else { show('menu'); updateBest(); } }
+function updateShopTabs() {
+  document.querySelectorAll('#shopTabs .tab').forEach(b => b.classList.toggle('on', b.dataset.stab === shopTab));
+}
+$('shopTabs')?.addEventListener('click', e => {
+  const b = e.target.closest('[data-stab]'); if (!b) return;
+  sound.init(); sound.play('ui'); shopTab = b.dataset.stab; $('shopMsg').textContent = ''; updateShopTabs(); renderShop();
+});
 const pct = v => Math.round(v * 100) + '%';
 function renderShop() {
   $('shopCoins').textContent = Shop.coins.toLocaleString('en-US');
+  if (shopTab === 'cosmetics') {
+    const curSkin = Shop.skin(), curFx = Shop.headFx();
+    let ch = '<div class="shsec">🎨 سكنات الأسلحة (تتطبق فوراً على كل الأسلحة)</div><div class="shgrid">';
+    for (const s of SKINS) {
+      const owned = Shop.hasSkin(s.id), eq = curSkin === s.id;
+      const btn = eq
+        ? `<button class="shbtn done" disabled>مُجهّز ✓</button>`
+        : owned
+          ? `<button class="shbtn eq" data-act="equipSkin" data-id="${s.id}">تجهيز ✨</button>`
+          : `<button class="shbtn${Shop.coins < s.price ? ' poor' : ''}" data-act="buySkin" data-id="${s.id}">اشترِ · ${s.price.toLocaleString('en-US')} 💰</button>`;
+      ch += `<div class="wcard skcard${eq ? ' equipped' : ''}">` +
+        `<div class="sktop"><span class="swatch" style="background:linear-gradient(135deg,${s.swatch[0]},${s.swatch[1]})"></span><div class="skinfo"><h3>${s.name}</h3><small>${s.desc}</small></div></div>` +
+        `<div class="urow"><span class="ulbl">${eq ? 'مُفعّل حالياً' : owned ? 'مملوك' : 'سكن نادر'}</span>${btn}</div></div>`;
+    }
+    ch += '</div><div class="shsec">💥 تأثيرات إصابة الرأس (هيدشوت)</div><div class="shgrid">';
+    for (const f of HEAD_FX) {
+      const owned = Shop.hasHeadFx(f.id), eq = curFx === f.id;
+      const btn = eq
+        ? `<button class="shbtn done" disabled>مُجهّز ✓</button>`
+        : owned
+          ? `<button class="shbtn eq" data-act="equipFx" data-id="${f.id}">تجهيز ✨</button>`
+          : `<button class="shbtn${Shop.coins < f.price ? ' poor' : ''}" data-act="buyFx" data-id="${f.id}">اشترِ · ${f.price.toLocaleString('en-US')} 💰</button>`;
+      ch += `<div class="wcard skcard${eq ? ' equipped' : ''}">` +
+        `<div class="sktop"><span class="swatch fxsw" style="background:linear-gradient(135deg,${f.swatch[0]},${f.swatch[1]})">${f.icon}</span><div class="skinfo"><h3>${f.name}</h3><small>${f.desc}</small></div></div>` +
+        `<div class="urow"><span class="ulbl">${eq ? 'مُفعّل حالياً' : owned ? 'مملوك' : 'تأثير هيدشوت'}</span>${btn}</div></div>`;
+    }
+    ch += '</div>';
+    $('shopBody').innerHTML = ch;
+    return;
+  }
   const stars = n => '★'.repeat(n) + '☆'.repeat(Shop.MAX_UP - n);
   // طلب قصي: كل سلاح يبيّن ميزاته بالمتجر (ضرر، سرعة، مخزن، احتياط، مدى)
   const wStatLine = d => { const sk = d.skillDesc ? `<small class="wst">⭐ ${d.skillDesc}</small>` : ''; const perSec = d.rate ? (1 / d.rate).toFixed(1) : '—'; const pel = d.pellets > 1 ? ` × ${d.pellets} رصاصة` : ''; return `<small class="wst">💥 الضرر ${Math.round(d.dmg)}${pel} · 🎯 الرأس ×${d.head || 1} · ⚡ ${perSec} طلقة/ث · 📦 المخزن ${d.mag} · 🎒 الاحتياط ${(d.maxReserve ?? d.reserve) === Infinity ? '∞' : (d.maxReserve ?? d.reserve)} · 📏 المدى ${d.range || '—'}</small>` + sk; };
@@ -777,12 +928,214 @@ $('shopBody').addEventListener('click', e => {
   else if (act === 'heart') { price = Shop.heartCost() || 0; ok = Shop.buyHeart(); what = `صحتك صارت ${100 + Shop.heartHp()} ❤️ من المرحلة الجاية`; }
   else if (act === 'cap') { price = Shop.nextCap()?.price || 0; ok = Shop.buyCap(); what = `سعة الدرع صارت ${Shop.armorCap()} 🔵 من المرحلة الجاية`; }
   else if (act === 'shield') { price = Shop.nextShield()?.price || 0; ok = Shop.buyShield(); what = 'المولّد الواقي ✅ يشتغل من أول المرحلة الجاية'; }
+  else if (act === 'buySkin') { const sk = SKINS.find(x => x.id === b.dataset.id); price = sk?.price || 0; ok = Shop.buySkin(b.dataset.id); if (ok) { applyAllSkins(); what = `تم شراء وتجهيز سكن «${sk.name}» 🎨`; } }
+  else if (act === 'equipSkin') { const sk = SKINS.find(x => x.id === b.dataset.id); ok = Shop.equipSkin(b.dataset.id); if (ok) { applyAllSkins(); what = `تم تجهيز سكن «${sk.name}» ✨`; } }
+  else if (act === 'buyFx') { const fxDef = HEAD_FX.find(x => x.id === b.dataset.id); price = fxDef?.price || 0; ok = Shop.buyHeadFx(b.dataset.id); if (ok) what = `تم شراء وتجهيز تأثير «${fxDef.name}» 💥`; }
+  else if (act === 'equipFx') { const fxDef = HEAD_FX.find(x => x.id === b.dataset.id); ok = Shop.equipHeadFx(b.dataset.id); if (ok) what = `تم تجهيز تأثير «${fxDef.name}» ✨`; }
   if (ok) { sound.play('swap'); $('shopMsg').textContent = what; }
   else { sound.play('empty'); $('shopMsg').textContent = `ما بكفّي الكوينز: ناقصك ${(price - Shop.coins).toLocaleString('en-US')} 💰`; }
   renderShop();
 });
 $('shopBack').addEventListener('click', e => { e.preventDefault(); sound.init(); sound.play('ui'); closeShop(); });
 click('mShop', () => openShop('menu')); click('lvlShop', () => openShop('levels')); click('oShop', () => openShop('over'));
+click('mEndless', () => { tryFullscreen(); startEndless(); });
+
+// ===== اليومية والمهمات =====
+function updateDailyDot() {
+  const dot = $('dailyDot');
+  if (dot) dot.classList.toggle('hidden', !Daily.hasClaimable());
+}
+function renderDaily() {
+  $('dailyCoins').textContent = Shop.coins.toLocaleString('en-US');
+  const canLogin = Daily.canClaimLogin();
+  const curDay = Daily.currentLoginDay();
+  const st = Daily.state();
+  const claimedToday = !canLogin;
+
+  let h = '<div class="shsec">📅 مكافأة الدخول اليومي (7 أيام متتالية)</div><div class="dgrid">';
+  Daily.LOGIN_REWARDS.forEach((rew, idx) => {
+    const day = idx + 1;
+    const isPast = claimedToday ? (day <= curDay) : (day < curDay);
+    const isToday = day === curDay;
+    const cls = isPast ? 'dcard done' : (isToday && canLogin) ? 'dcard ready' : 'dcard locked';
+    const foot = isPast
+      ? '<span class="dtag ok">تم ✓</span>'
+      : (isToday && canLogin)
+        ? `<button class="shbtn dclaim" data-dact="login">استلم 💰</button>`
+        : '<span class="dtag">قريباً</span>';
+    h += `<div class="${cls}"><div class="dday">اليوم ${day}</div><div class="drew">+${rew.toLocaleString('en-US')} 💰</div>${foot}</div>`;
+  });
+  h += '</div>';
+
+  h += '<div class="shsec">🎯 مهمات اليوم (تتجدد كل يوم)</div><div class="qlist">';
+  for (const q of Daily.quests()) {
+    const pctW = Math.min(100, Math.round((q.progress / q.target) * 100));
+    const btn = q.claimed
+      ? `<button class="shbtn done" disabled>تم الاستلام ✓</button>`
+      : q.done
+        ? `<button class="shbtn qclaim" data-dact="quest" data-qid="${q.id}">استلم · +${q.reward} 💰</button>`
+        : `<button class="shbtn poor" disabled>${q.progress}/${q.target}</button>`;
+    h += `<div class="qcard${q.done && !q.claimed ? ' ready' : q.claimed ? ' done' : ''}">` +
+      `<div class="qico">${q.icon}</div>` +
+      `<div class="qinfo"><div class="qtitle">${q.title} <small>(+${q.reward} 💰)</small></div>` +
+      `<div class="qbar"><i style="width:${pctW}%"></i></div>` +
+      `<div class="qmeta">${q.progress} / ${q.target}</div></div>${btn}</div>`;
+  }
+  h += '</div>';
+  $('dailyBody').innerHTML = h;
+  updateDailyDot();
+}
+function openDaily() { $('dailyMsg').textContent = ''; renderDaily(); show('daily'); }
+$('dailyBody')?.addEventListener('click', e => {
+  const b = e.target.closest('[data-dact]'); if (!b || b.disabled) return;
+  e.preventDefault(); sound.init();
+  const act = b.dataset.dact;
+  if (act === 'login') {
+    const res = Daily.claimLogin(Shop);
+    if (res.ok) {
+      sound.play('waveClear');
+      $('dailyMsg').textContent = `🎉 استلمت مكافأة اليوم ${res.day}: +${res.reward.toLocaleString('en-US')} 💰!`;
+      updateBest(); renderDaily();
+    }
+  } else if (act === 'quest') {
+    const res = Daily.claimQuest(b.dataset.qid, Shop);
+    if (res.ok) {
+      sound.play('pickup');
+      $('dailyMsg').textContent = `🏆 مكافأة المهمة «${res.quest.title}»: +${res.reward.toLocaleString('en-US')} 💰!`;
+      updateBest(); renderDaily();
+    }
+  }
+});
+click('mDaily', openDaily);
+click('dailyBack', () => { show('menu'); updateBest(); updateDailyDot(); });
+
+// ===== لوحة المتصدرين العالمية =====
+let lbTab = 'story', lbRows = null, lbLastErr = null;
+function escHtml(s) { return String(s || '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m])); }
+function updateLbTabs() {
+  document.querySelectorAll('#lbTabs .tab').forEach(b => b.classList.toggle('on', b.dataset.lbtab === lbTab));
+}
+function renderLeaderboard() {
+  const body = $('lbBody'), meBox = $('lbMe');
+  const isEnd = lbTab === 'endless';
+  const localBest = LS.get(isEnd ? 'ns_endless_best' : 'ns_best', 0);
+  const localWave = LS.get(isEnd ? 'ns_endless_wave' : 'ns_best_wave', 0);
+  const user = Cloud.getUser();
+
+  if (lbRows === null && !lbLastErr) {
+    body.innerHTML = '<div class="lbempty">⏳ جاري تحميل قائمة المتصدرين...</div>';
+  } else if (lbLastErr) {
+    const msg = lbLastErr === 'offline'
+      ? '📴 أنت حالياً بدون اتصال بالإنترنت.'
+      : '☁️ لوحة المتصدرين العالمية غير متاحة حالياً (تأكد من الاتصال).';
+    body.innerHTML = `<div class="lbempty"><div>${msg}</div><div class="lbloc">أفضل رقم على جهازك (${isEnd ? 'البقاء اللانهائي' : 'القصة'}): <b>${Number(localBest).toLocaleString('en-US')}</b> · موجة <b>${localWave}</b></div></div>`;
+  } else {
+    const sorted = [...lbRows]
+      .filter(r => isEnd ? (r.endlessScore > 0 || r.endlessWave > 0) : (r.bestScore > 0 || r.bestWave > 0))
+      .sort((a, b) => isEnd
+        ? ((b.endlessScore - a.endlessScore) || (b.endlessWave - a.endlessWave))
+        : ((b.bestScore - a.bestScore) || (b.bestWave - a.bestWave))
+      )
+      .slice(0, 50);
+
+    if (!sorted.length) {
+      body.innerHTML = `<div class="lbempty"><div>🏆 لا يوجد متصدرون في هذا الطور بعد — كن أول بطل يتصدّر القائمة!</div><div class="lbloc">أفضل رقم على جهازك: <b>${Number(localBest).toLocaleString('en-US')}</b> · موجة <b>${localWave}</b></div></div>`;
+    } else {
+      let h = '<div class="lblist">';
+      sorted.forEach((r, idx) => {
+        const rank = idx + 1;
+        const badge = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `#${rank}`;
+        const isMe = !!(user && r.uid === user.uid);
+        const sc = isEnd ? r.endlessScore : r.bestScore;
+        const wv = isEnd ? r.endlessWave : r.bestWave;
+        const ava = r.photo
+          ? `<img class="lbava" src="${escHtml(r.photo)}" alt="" referrerpolicy="no-referrer">`
+          : `<div class="lbava cinit">${escHtml((r.name || 'ن')[0].toUpperCase())}</div>`;
+        h += `<div class="lbrow${isMe ? ' me' : ''}${rank <= 3 ? ' top' + rank : ''}">` +
+          `<div class="lbrank">${badge}</div>${ava}` +
+          `<div class="lbname">${escHtml(r.name)}${isMe ? ' <small>(أنت)</small>' : ''}</div>` +
+          `<div class="lbwave">${isEnd ? '♾️ موجة ' : 'موجة '}${wv}</div>` +
+          `<div class="lbscore">${Number(sc).toLocaleString('en-US')}</div></div>`;
+      });
+      h += '</div>';
+      body.innerHTML = h;
+    }
+
+    // Bottom bar for current player
+    if (user) {
+      const myIdx = sorted.findIndex(r => r.uid === user.uid);
+      const myRankTxt = myIdx >= 0 ? `#${myIdx + 1}` : '—';
+      const myName = escHtml(Cloud.getPlayerName());
+      const mySc = myIdx >= 0 ? (isEnd ? sorted[myIdx].endlessScore : sorted[myIdx].bestScore) : localBest;
+      const myWv = myIdx >= 0 ? (isEnd ? sorted[myIdx].endlessWave : sorted[myIdx].bestWave) : localWave;
+      meBox.innerHTML = `<div class="lbmerow"><span class="lbrank">${myRankTxt}</span><span class="lbname">ترتيبك: <b>${myName}</b></span><span class="lbwave">موجة ${myWv}</span><span class="lbscore">${Number(mySc).toLocaleString('en-US')}</span></div>`;
+      return;
+    }
+  }
+
+  if (!user) {
+    meBox.innerHTML = `<div class="lblogin"><span>أفضل رقم محلي: <b>${Number(localBest).toLocaleString('en-US')}</b></span><button class="shbtn" id="lbSignInBtn" type="button">سجّل دخولك بحساب جوجل للمنافسة</button></div>`;
+    $('lbSignInBtn')?.addEventListener('click', () => Cloud.signIn());
+  } else {
+    meBox.innerHTML = `<div class="lbmerow"><span>أنت مسجّل كـ <b>${escHtml(Cloud.getPlayerName())}</b></span><span class="lbscore">${Number(localBest).toLocaleString('en-US')}</span></div>`;
+  }
+}
+async function openLeaderboard(force = false) {
+  show('leaderboard');
+  updateLbTabs();
+  if (force || lbRows === null) {
+    lbRows = null; lbLastErr = null;
+    renderLeaderboard();
+    const res = await fetchLeaderboard();
+    if (res.ok) { lbRows = res.rows; lbLastErr = null; }
+    else { lbRows = []; lbLastErr = res.reason || 'error'; }
+  }
+  renderLeaderboard();
+}
+$('lbTabs')?.addEventListener('click', e => {
+  const b = e.target.closest('[data-lbtab]'); if (!b) return;
+  sound.init(); sound.play('ui'); lbTab = b.dataset.lbtab; updateLbTabs(); renderLeaderboard();
+});
+click('mLeader', () => openLeaderboard(true));
+click('lbBack', () => { show('menu'); updateBest(); });
+click('lbRefresh', () => openLeaderboard(true));
+
+// ===== مشاركة بطاقة النتيجة =====
+click('oShare', async () => {
+  const btn = $('oShare'), fb = $('shareFeedback');
+  btn.disabled = true;
+  const origTxt = btn.textContent;
+  btn.textContent = '⏳ جاري تجهيز البطاقة...';
+  try {
+    const sk = Shop.skinDef();
+    const res = await shareResultCard({
+      playerName: Cloud.getPlayerName(),
+      modeLabel: G.endless ? '♾️ البقاء اللانهائي' : 'طور القصة',
+      isEndless: !!G.endless,
+      score: G.score,
+      waveLabel: $('oWave').textContent || '1',
+      kills: G.kills,
+      heads: G.heads,
+      accuracy: $('oAcc').textContent || '0%',
+      skinName: sk.name,
+      skinSwatch: sk.swatch,
+    });
+    if (res.ok && (res.method === 'native-file' || res.method === 'native-text')) {
+      fb.innerHTML = '<span>✅ تمت مشاركة بطاقة نتيجتك بنجاح!</span>';
+      fb.classList.remove('hidden');
+    } else if (res.ok && res.method === 'download') {
+      fb.innerHTML = `<span>✅ تم تنزيل صورة بطاقة النتيجة!</span> <a class="wabtn" href="${res.waUrl}" target="_blank" rel="noopener">💬 فتح واتساب للمشاركة</a>`;
+      fb.classList.remove('hidden');
+    }
+  } catch (err) {
+    console.warn('Share error:', err);
+    fb.innerHTML = '<span>⚠️ تعذر تجهيز البطاقة حالياً</span>';
+    fb.classList.remove('hidden');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = origTxt;
+  }
+});
 
 // ===== custom button layout =====
 const LBTN = { tLeanL: 46, tLeanR: 46, tZoom: 44, tProne: 54, tFireS: 76, tScope: 56, tFire: 96, tFire2: 66, tJump: 62, tDash: 58, tReload: 52, tSwap: 52, tAuto: 40 };
@@ -839,8 +1192,8 @@ $('sLayout').addEventListener('click', openLayoutEditor);
 click('mSettings', () => { settingsReturn = 'menu'; show('settings'); });
 click('mHow', () => show('how')); click('howBack', () => show('menu'));
 click('setBack', closeSettings);
-click('pResume', resumeGame); click('pSettings', () => { settingsReturn = 'pause'; show('settings'); }); click('pRestart', () => { G.mode = 'paused'; startGame(G.gl); }); click('pLevels', () => openLevels()); click('pMenu', toMenu);
-click('oAgain', () => startGame(G.overKind === 'next' ? Math.min(TOTAL, (G.gl || 1) + 1) : G.gl)); click('oMenu', () => openLevels(G.overKind === 'next' && lvOf(G.gl || 1) === LPI ? islOf(G.gl) + 1 : islOf(G.gl || 1)));
+click('pResume', resumeGame); click('pSettings', () => { settingsReturn = 'pause'; show('settings'); }); click('pRestart', () => { G.mode = 'paused'; if (G.endless) startEndless(); else startGame(G.gl); }); click('pLevels', () => openLevels()); click('pMenu', toMenu);
+click('oAgain', () => { if (G.overKind === 'endless') startEndless(); else startGame(G.overKind === 'next' ? Math.min(TOTAL, (G.gl || 1) + 1) : G.gl); }); click('oMenu', () => { if (G.overKind === 'endless') toMenu(); else openLevels(G.overKind === 'next' && lvOf(G.gl || 1) === LPI ? islOf(G.gl) + 1 : islOf(G.gl || 1)); });
 click('mFs', tryFullscreen); $('btnFs').addEventListener('click', tryFullscreen);
 $('btnPause').addEventListener('click', pauseGame); $('btnSet').addEventListener('pointerdown', e => e.stopPropagation()); $('btnSet').addEventListener('click', () => { if (G.mode !== 'play') return; pauseGame(); settingsReturn = 'game'; show('settings'); }); $('btnView').addEventListener('click', toggleView);
 H.auto.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); S.autoFire = !S.autoFire; saveSettings(); applyHudSettings(); $('sAuto').checked = S.autoFire; feed(S.autoFire ? 'الإطلاق التلقائي: تشغيل' : 'الإطلاق التلقائي: إيقاف'); });
@@ -909,22 +1262,29 @@ function loop(now) {
 }
 
 // ---------- boot ----------
-bindSettings(); resize(); updateBest(); spawnDemo(); applyHudSettings();
+bindSettings(); resize(); updateBest(); applyAllSkins(); updateDailyDot(); spawnDemo(); applyHudSettings();
 initCloud({
   onCloudLoaded() {
     Shop.reload();
+    Daily.reload();
+    applyAllSkins();
     const p2 = loadProg();
     PROG.b.length = 0; PROG.b.push(...p2.b); PROG.won = !!p2.won;
     Object.assign(S, DEFAULTS, LS.get('ns_settings', {}));
-    updateBest(); applyHudSettings(); applyQualityLive();
+    updateBest(); updateDailyDot(); applyHudSettings(); applyQualityLive();
     if (!$('islands').classList.contains('hidden')) renderIslands();
     if (!$('levels').classList.contains('hidden')) renderLevels();
     if (!$('shop').classList.contains('hidden') && typeof renderShop === 'function') renderShop();
-  }
+    if (!$('daily').classList.contains('hidden')) renderDaily();
+    if (!$('leaderboard').classList.contains('hidden')) openLeaderboard(true);
+  },
+  onAuthChange() {
+    if (!$('leaderboard').classList.contains('hidden')) openLeaderboard(true);
+  },
 });
 if (input.touchMode) document.body.classList.add('touchmode');
 requestAnimationFrame(t => { lastT = t; requestAnimationFrame(loop); });
 // warm up shaders (avoid stutter on first shot/explosion)
 renderer.compile(scene, camera); renderer.compile(vm.scene, vm.cam);
-setTimeout(() => { $('loading').classList.add('hidden'); G.mode = 'menu'; show('menu'); }, 150);
-G.api = { Shop, offerPerks,  startGame, pauseGame, resumeGame, toMenu, fire, P, enemies, world, settings: S, switchWeapon, startWave, get spawnQueue() { return spawnQueue; }, set intermission(v) { intermission = v; }, explode: G.explode };
+setTimeout(() => { $('loading').classList.add('hidden'); G.mode = 'menu'; show('menu'); updateDailyDot(); }, 150);
+G.api = { Shop, Daily, Cloud, offerPerks, startGame, startEndless, pauseGame, resumeGame, toMenu, fire, die, openLeaderboard, openDaily, openShop, applyAllSkins, renderResultCardCanvas, shareResultCard, P, enemies, world, settings: S, switchWeapon, startWave, get spawnQueue() { return spawnQueue; }, set intermission(v) { intermission = v; }, explode: G.explode };
