@@ -398,10 +398,40 @@ function applySkill(w, hitE, W) {
     }
   }
 }
+function skinPerk() { return Shop.skinDef()?.perk || {}; }
+function applySkinPerk(w, hitE, W, fallbackPos) {
+  const sp = skinPerk();
+  if (sp.burn && hitE) {
+    for (const e of hitE.keys()) if (e.alive) e.burnT = Math.max(e.burnT || 0, sp.burn);
+  }
+  if (sp.slow && hitE) {
+    for (const e of hitE.keys()) if (e.alive) e.slowT = Math.max(e.slowT || 0, sp.slow);
+  }
+  if (sp.voidNova) {
+    P.voidShotN = (P.voidShotN || 0) + 1;
+    if (P.voidShotN % sp.voidNova === 0) {
+      let center = fallbackPos;
+      if (hitE && hitE.size) { const first = hitE.values().next().value; if (first && first.pos) center = first.pos; }
+      if (center) {
+        const novaDmg = Math.max(18, w.dmg * (w.pellets > 1 ? 2.2 : 0.75));
+        for (const c of enemies.list) {
+          if (!c.alive) continue;
+          if (Math.hypot(c.pos.x - center.x, c.pos.z - center.z) < 7.5) {
+            enemies.damage(c, novaDmg, { head: false, weapon: w.id, pos: center });
+            dmgNumber(new THREE.Vector3(c.pos.x, c.pos.y + 1.5, c.pos.z), novaDmg, false);
+          }
+        }
+        fx.burst(center, [0, 1, 0], '#e879f9', 16, 8, 0.22, 0.45);
+        fx.light(center.x, center.y + 0.6, center.z, '#c026d3', 10, 0.18, 12);
+        sound.play('hit');
+      }
+    }
+  }
+}
 function fire() {
-  const W = P.weapons[P.cur], w = W.def;
+  const W = P.weapons[P.cur], w = W.def, sp = skinPerk();
   if (W.mag <= 0) { if (W.reserve > 0) startReload(); else { sound.play('empty'); P.fireCD = 0.25; const nxt = P.weapons.findIndex((x, i) => x.owned && (x.mag > 0 || x.reserve > 0) && i !== P.cur); if (nxt >= 0) switchWeapon(nxt); } return; }
-  W.mag--; P.fireCD = w.rate; G.shots++; P.noise = 0.6;
+  W.mag--; P.fireCD = w.rate * (sp.rateMult || 1); G.shots++; P.noise = 0.6;
   aimBasis(); const origin = aimOrigin(_o); muzzleWorld(_mz);
   const speed01 = clamp(Math.hypot(P.vel.x, P.vel.z) / 7, 0, 1);
   const spread = (w.spread + w.moveSpread * speed01 + (P.onGround ? 0 : 0.02) + P.bloom) * (1 - 0.6 * P.ads) * (P.prone ? 0.6 : 1);
@@ -410,7 +440,7 @@ function fire() {
   if (w.projectile) {
     const h = world.raycast(origin.x, origin.y, origin.z, _f.x, _f.y, _f.z, 150); const eh = enemies.rayHit(origin, _f, h ? h.t : 150, assistOn() ? 0.2 : 0);
     const t = eh ? eh.t : h ? h.t : 150; const target = origin.clone().addScaledVector(_f, t); const dir = target.sub(_mz).normalize();
-    projectiles.spawn({ pos: _mz.clone(), dir, speed: w.projectile.speed, dmg: w.dmg, owner: 'player', color: '#7dff6a', core: '#eaffd8', size: 0.2, radius: w.projectile.radius, trail: 1, grav: 2 });
+    const pCol = Shop.skinDef()?.accent || '#7dff6a'; projectiles.spawn({ pos: _mz.clone(), dir, speed: w.projectile.speed, dmg: w.dmg * (sp.dmgMult || 1), owner: 'player', color: pCol, core: '#ffffff', size: 0.22, radius: w.projectile.radius, trail: 1, grav: 2 }); applySkinPerk(w, null, W, target);
   } else {
     const fifth = w.skill === 'fifth' && ((W.shotN = (W.shotN || 0) + 1) % 5 === 0) ? 2 : 1;
     const n = w.pellets; let headHit = false, killed = false, dmgSum = 0, lastPos = null, shieldHit = false;
@@ -428,7 +458,7 @@ function fire() {
         const head = eh.mult >= 1.5; let dmg = w.dmg * fall * (head ? w.head * (eh.mult / 2) : eh.mult);
         if (eh.e.type === 'boss' && eh.mult >= 2) dmg = w.dmg * fall * 2.5;
         if (w.skill === 'close' && eh.t < 8) dmg *= 1.35; if (fifth > 1) dmg *= fifth;
-        const rec = hitE.get(eh.e) || { dmg: 0, head: false, pos: end, dir: _d.clone() }; rec.dmg += dmg * P.perk.dmg * (head ? P.perk.head : 1); rec.head = rec.head || head; rec.pos = end; hitE.set(eh.e, rec);
+        const rec = hitE.get(eh.e) || { dmg: 0, head: false, pos: end, dir: _d.clone() }; rec.dmg += dmg * P.perk.dmg * (sp.dmgMult || 1) * (head ? P.perk.head * (sp.headMult || 1) : 1); rec.head = rec.head || head; rec.pos = end; hitE.set(eh.e, rec);
         fx.impact(end, [-_d.x, -_d.y, -_d.z], 'enemy'); anyHit = true;
       } else if (h) {
         end = origin.clone().addScaledVector(_d, h.t);
@@ -438,11 +468,12 @@ function fire() {
       if (w.tracer && (n === 1 || i % 3 === 0)) fx.tracer(_mz, end, w.color, w.tracer, n === 1 ? 0.07 : 0.05);
     }
     for (const [e, rec] of hitE) {
-      const info = { head: rec.head, weapon: w.id, dir: rec.dir, pos: rec.pos }; const k = enemies.damage(e, rec.dmg, info);
+      lastPos = rec.pos; const info = { head: rec.head, weapon: w.id, dir: rec.dir, pos: rec.pos }; const k = enemies.damage(e, rec.dmg, info);
       dmgNumber(rec.pos, info.shielded ? rec.dmg * 0.3 : rec.dmg, rec.head); if (rec.head) { G.heads++; headHit = true; } if (k === true) killed = true; dmgSum += rec.dmg;
       if (info.shielded) { fx.burst(rec.pos, [-rec.dir.x, 0, -rec.dir.z], '#7ff8ff', 8, 6, 0.12, 0.3); sound.play('shieldHit'); shieldHit = true; } else sound.play('metal', G.spatial(rec.pos));
     }
     if (w.skill) applySkill(w, hitE, W);
+    applySkinPerk(w, hitE, W, lastPos);
     if (anyHit) { G.hits++; hitMarker(killed ? 'kill' : headHit ? 'head' : shieldHit ? 'shield' : ''); sound.play(headHit ? 'head' : 'hit'); }
   }
   // feedback
@@ -502,7 +533,7 @@ function updatePlayer(dt) {
   if (P.reloadT >= 0 && P.scoped) setScope(false);
   if (inp.toggleView) toggleView();
   P.fireCD -= dt; P.bloom = Math.max(0, P.bloom - dt * 0.06); P.noise -= dt;
-  if (P.reloadT >= 0) { P.reloadT += dt; if (P.reloadT >= P.weapons[P.cur].def.reload * P.perk.reload) finishReload(); }
+  if (P.reloadT >= 0) { P.reloadT += dt; if (P.reloadT >= P.weapons[P.cur].def.reload * P.perk.reload * (skinPerk().reloadMult || 1)) finishReload(); }
   let wantFire = inp.fire;
   // auto-fire when crosshair is on an enemy
   aimBasis(); const ao = aimOrigin(_o); const h = world.raycast(ao.x, ao.y, ao.z, _f.x, _f.y, _f.z, 60); const onE = enemies.rayHit(ao, _f, h ? h.t : 60, assistOn() ? 0.12 : 0);
@@ -596,9 +627,9 @@ function updateHUD(dt) {
   setText(H.wavenum, 'wave', G.endless ? `♾️ موجة ${G.wave || 1} · ×${(G.endlessMult || 1).toFixed(1)}` : `${(G.theme || THEMES[0]).emoji} ${lvOf(G.gl || 1)} - موجة ${G.waveIn || 1}/${G.nW || 1}`); setText(H.score, 'score', G.score.toLocaleString('en-US'));
   setText(H.combo, 'combo', G.streak >= 2 ? `×${G.mult.toFixed(1)} سلسلة ${G.streak}` : '');
   setText(H.enum, 'enum', String(enemies.alive() + spawnQueue.length)); setText(H.coins, 'coins', String(Shop.coins));
-  const W = P.weapons[P.cur]; setText(H.wname, 'wn', W.def.name); setText(H.mag, 'mag', String(W.mag)); setText(H.reserve, 'res', '/ ' + (W.reserve === Infinity ? '∞' : W.reserve));
+  const W = P.weapons[P.cur]; const _sk = Shop.skinDef(); setText(H.wname, 'wn', _sk && _sk.id !== 'default' ? `${W.def.name} ${_sk.icon}` : W.def.name); setText(H.mag, 'mag', String(W.mag)); setText(H.reserve, 'res', '/ ' + (W.reserve === Infinity ? '∞' : W.reserve));
   H.mag.classList.toggle('low', W.mag <= Math.ceil(magSize(W) * 0.25));
-  H.reloadbar.classList.toggle('on', P.reloadT >= 0); if (P.reloadT >= 0) H.reloadfill.style.width = (P.reloadT / (W.def.reload * P.perk.reload) * 100) + '%';
+  H.reloadbar.classList.toggle('on', P.reloadT >= 0); if (P.reloadT >= 0) H.reloadfill.style.width = Math.min(100, (P.reloadT / (W.def.reload * P.perk.reload * (skinPerk().reloadMult || 1)) * 100)) + '%';
   const ownedCount = P.weapons.filter(w => w.owned).length; let ni = P.cur; for (let k = 1; k <= P.weapons.length; k++) { const i = (P.cur + k) % P.weapons.length; if (P.weapons[i].owned) { ni = i; break; } } setText(H.swapLbl, 'swl', String(ni + 1));
   const needR = W.mag === 0 && W.reserve > 0 && P.reloadT < 0; $('tReload').classList.toggle('need', needR || (W.mag <= Math.ceil(magSize(W) * 0.2) && W.reserve > 0 && P.reloadT < 0));
   setText($('reloadhint'), 'rh', P.reloadT >= 0 ? 'تلقيم…' : W.mag === 0 ? (W.reserve > 0 ? 'لقّم!' : 'لا يوجد ذخيرة') : '');
@@ -859,7 +890,7 @@ function renderShop() {
   $('shopCoins').textContent = Shop.coins.toLocaleString('en-US');
   if (shopTab === 'cosmetics') {
     const curSkin = Shop.skin(), curFx = Shop.headFx();
-    let ch = '<div class="shsec">🎨 سكنات الأسلحة (تتطبق فوراً على كل الأسلحة)</div><div class="shgrid">';
+    let ch = '<div class="shsec">🎨 سكنات تطورية للأسلحة (تغيّر شكل السلاح + ميزة قتالية!)</div><div class="shgrid">';
     for (const s of SKINS) {
       const owned = Shop.hasSkin(s.id), eq = curSkin === s.id;
       const btn = eq
@@ -868,8 +899,8 @@ function renderShop() {
           ? `<button class="shbtn eq" data-act="equipSkin" data-id="${s.id}">تجهيز ✨</button>`
           : `<button class="shbtn${Shop.coins < s.price ? ' poor' : ''}" data-act="buySkin" data-id="${s.id}">اشترِ · ${s.price.toLocaleString('en-US')} 💰</button>`;
       ch += `<div class="wcard skcard${eq ? ' equipped' : ''}">` +
-        `<div class="sktop"><span class="swatch" style="background:linear-gradient(135deg,${s.swatch[0]},${s.swatch[1]})"></span><div class="skinfo"><h3>${s.name}</h3><small>${s.desc}</small></div></div>` +
-        `<div class="urow"><span class="ulbl">${eq ? 'مُفعّل حالياً' : owned ? 'مملوك' : 'سكن نادر'}</span>${btn}</div></div>`;
+        `<div class="sktop"><span class="swatch fxsw" style="background:linear-gradient(135deg,${s.swatch[0]},${s.swatch[1]})">${s.icon || '🎨'}</span><div class="skinfo"><h3>${s.name}</h3><small>🔧 الشكل: ${s.shapeDesc || s.desc}</small><small class="wst" style="color:#ffd166">⚡ الميزة: ${s.perkDesc || 'بدون'}</small></div></div>` +
+        `<div class="urow"><span class="ulbl">${eq ? 'مُفعّل حالياً ✓' : owned ? 'مملوك' : 'سكن تطوري'}</span>${btn}</div></div>`;
     }
     ch += '</div><div class="shsec">💥 تأثيرات إصابة الرأس (هيدشوت)</div><div class="shgrid">';
     for (const f of HEAD_FX) {
