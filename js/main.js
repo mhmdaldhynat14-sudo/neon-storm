@@ -247,13 +247,13 @@ G.onEnemyKilled = (e, info) => {
 };
 
 // ---------- waves ----------
-// ===== الجزر: 5 جزر × 10 مراحل =====
-const ISL = 5, LPI = 10, TOTAL = ISL * LPI, LEVELS = TOTAL;
+// ===== الجزر: 20 جزيرة × 5 مراحل (100 مرحلة) مع قصة لكل جزيرة =====
+const ISL = 20, LPI = 5, TOTAL = ISL * LPI, LEVELS = TOTAL;
 const glOf = (i, l) => (i - 1) * LPI + l, islOf = gl => Math.ceil(gl / LPI), lvOf = gl => ((gl - 1) % LPI) + 1;
-const isBossLvl = gl => lvOf(gl) === 5 || lvOf(gl) === 10;
-const bossIdx = gl => (islOf(gl) - 1) * 2 + (lvOf(gl) === 10 ? 2 : 1);
+const isBossLvl = gl => lvOf(gl) === LPI;
+const bossIdx = gl => islOf(gl);
 const nWaves = gl => (islOf(gl) <= 2 ? 3 : 4) + (isBossLvl(gl) ? 1 : 0);
-const ewBase = gl => 1 + Math.round((gl - 1) * 0.85);
+const ewBase = gl => 1 + Math.round((gl - 1) * 0.5);
 const PKEY = 'ns_islands_v1';
 function loadProg() {
   let p = LS.get(PKEY, null);
@@ -279,7 +279,7 @@ function diff() {
   if (G.endless) {
     return { hp: 1 + (w - 1) * 0.16, dmg: 1 + (w - 1) * 0.09, speed: 1 + Math.min(0.45, (w - 1) * 0.03) };
   }
-  return { hp: (1 + (w - 1) * 0.11) * (1 + (gl - 1) * 0.01), dmg: (1 + (w - 1) * 0.07) * (1 + (gl - 1) * 0.008), speed: 1 + Math.min(0.3, (w - 1) * 0.025) };
+  return { hp: (1 + (w - 1) * 0.09) * (1 + (gl - 1) * 0.012), dmg: (1 + (w - 1) * 0.06) * (1 + (gl - 1) * 0.007), speed: 1 + Math.min(0.32, (w - 1) * 0.02) };
 }
 let spawnQueue = [], spawnT = 0, intermission = 0, maxAlive = 6;
 function startWave(k) {
@@ -323,11 +323,12 @@ function startWave(k) {
   if (boss) spawnQueue.unshift('boss');
   // طلب قصي: بالمرحلة 5 و10 من كل جزيرة (الزعماء) تنشال 3 أعداء من كل موجة
   // طلب قصي: جزيرة الجليد: المرحلة n أول موجة 5n أعداء، وكل موجة بعدها +5
-  if (islOf(gl) === 2) { const want = 5 * lvOf(gl) + 5 * (k - 1) + (boss ? 3 : 0); while (spawnQueue.length < want) spawnQueue.push(spawnQueue.length % 2 ? 'soldier' : 'rusher'); spawnQueue.length = want; }
+  if (islOf(gl) === 2) { const want = Math.min(35, 5 * lvOf(gl) + 5 * (k - 1) + (boss ? 3 : 0)); while (spawnQueue.length < want) spawnQueue.push(spawnQueue.length % 2 ? 'soldier' : 'rusher'); spawnQueue.length = want; }
   if (boss) for (let i = 0; i < 3; i++) { const j = spawnQueue.findIndex((x, idx) => idx > 0 || (idx === 0 && x !== 'boss')); if (j >= 0 && spawnQueue.length > (boss ? 1 : 0)) spawnQueue.splice(j, 1); }
   maxAlive = Math.min(5 + n, 15); spawnT = 1.2;
 
-  announce(k === 1 ? `${TH.emoji} ${TH.name} · المرحلة ${lv}` : `المرحلة ${lv} · الموجة ${k}/${G.nW}`, boss ? `⚠ الزعيم قادم: ${bossFor(bossIdx(gl)).name} 👑` : n === 6 ? 'احذر: المدرّع! درعه من الأمام، اضربه بالرأس أو من الجنب' : k === 1 ? `الموجة 1/${G.nW} · ${spawnQueue.length} أعداء${isBossLvl(gl) ? ' · وآخرها زعيم 👑' : ''}` : `${spawnQueue.length} أعداء`); sound.play(boss ? 'boss' : 'wave');
+  announce(k === 1 ? `${TH.emoji} ${TH.name} · المرحلة ${lv}` : `المرحلة ${lv} · الموجة ${k}/${G.nW}`, boss ? `⚠ الزعيم قادم: ${bossFor(bossIdx(gl)).name} 👑` : n === 6 ? 'احذر: المدرّع! درعه من الأمام، اضربه بالرأس أو من الجنب' : k === 1 ? (lv === 1 && TH.storyShort ? `📖 ${TH.storyShort}` : `الموجة 1/${G.nW} · ${spawnQueue.length} أعداء${isBossLvl(gl) ? ' · وآخرها زعيم 👑' : ''}`) : `${spawnQueue.length} أعداء`); sound.play(boss ? 'boss' : 'wave');
+  if (k === 1 && lv === 1 && TH.story) showStoryToast(islOf(gl), TH);
   G.waveTotal = spawnQueue.length; G.waveKilled0 = G.kills;
   WEAPONS.forEach((w, lw) => { if (w.unlockWave && !w.price && w.unlockWave <= n && P.weapons[lw] && !P.weapons[lw].owned) { P.weapons[lw].owned = true; setTimeout(() => { feed(`سلاح جديد: ${w.name}!`, true); sound.play('pickup'); }, 1800); } });
 }
@@ -344,7 +345,8 @@ function updateWaves(dt) {
     const bIdx = G.endless ? endlessBossIdx(G.wave || 3) : bossIdx(G.gl || 1);
     const BS = type === 'boss' ? bossFor(bIdx) : null;
     const islNum = G.endless ? ((Math.floor((G.wave - 1) / 5) % ISL) + 1) : islOf(G.gl || 1);
-    enemies.spawn(type, pos, { boss: BS, hpMul: df.hp * (BS ? BS.hp : 1), dmgMul: df.dmg * (BS ? BS.dmg : 1), speedMul: BS ? 1 : df.speed, level: G.wave, isl: islNum, aware: G.wave > 1 && Math.random() < 0.5 });
+    const skinIsl = (G.theme && G.theme.skin) ? G.theme.skin : islNum;
+    enemies.spawn(type, pos, { boss: BS, hpMul: df.hp * (BS ? BS.hp : 1), dmgMul: df.dmg * (BS ? BS.dmg : 1), speedMul: BS ? 1 : df.speed, level: G.wave, isl: skinIsl, aware: G.wave > 1 && Math.random() < 0.5 });
     if (BS) { setBossBar(BS); H.boss.classList.remove('hidden'); announce(`${BS.name}!`, bIdx === 1 ? 'اقفز فوق الموجة الأرضية 🦘' : `زعيم ${(G.theme || THEMES[0]).name} · أقوى من اللي قبله 💪`); }
     spawnT = Math.max(0.32, 1.2 - G.wave * 0.055) * (0.7 + Math.random() * 0.6);
   }
@@ -725,22 +727,44 @@ const screens = ['menu', 'settings', 'how', 'pause', 'over', 'perks', 'layoutEd'
 let settingsReturn = 'menu';
 function show(id) { for (const s of screens) $(s).classList.toggle('hidden', s !== id); }
 function updateBest() { $('menuCoins').textContent = Shop.coins.toLocaleString('en-US'); $('bestScore').textContent = LS.get('ns_best', 0).toLocaleString('en-US'); $('bestWave').textContent = `${PROG.b.length}/${TOTAL}`; }
+let _storyToastTimer = null;
+function hideStoryToast() {
+  if (_storyToastTimer) { clearTimeout(_storyToastTimer); _storyToastTimer = null; }
+  const el = $('storyToast');
+  if (el) { el.classList.remove('on'); el.classList.add('hidden'); }
+}
+function showStoryToast(ch, th) {
+  const el = $('storyToast'); if (!el || !th) return;
+  if (_storyToastTimer) clearTimeout(_storyToastTimer);
+  el.style.setProperty('--bc', th.ui || '#38f6ff');
+  el.innerHTML = `<div class="st-hd">📖 الفصل ${ch} من ${ISL} · ${th.emoji} ${th.name}</div><div class="st-tx">${th.story}</div>`;
+  el.classList.remove('hidden');
+  requestAnimationFrame(() => el.classList.add('on'));
+  _storyToastTimer = setTimeout(() => { el.classList.remove('on'); setTimeout(() => el.classList.add('hidden'), 400); }, 6800);
+}
 function renderIslands() {
   const box = $('islgrid'); box.innerHTML = ''; let nd = 0;
   for (let i = 1; i <= ISL; i++) {
     const th = THEMES[i - 1], open = islOpen(i), n = islDone(i); if (n >= LPI) nd++;
     const b = document.createElement('button'); b.className = 'isl' + (open ? '' : ' locked') + (n >= LPI ? ' done' : ''); b.dataset.i = i;
     b.style.setProperty('--bc', th.ui); b.style.setProperty('--bc2', th.ui2);
-    b.innerHTML = `<i>${open ? th.emoji : '🔒'}</i><b>${th.name}</b><span>${open ? `${n}/${LPI} ${n >= LPI ? '✅' : '⭐'}` : 'مقفلة'}</span><small>👑 ${bossFor(i * 2 - 1).name} · ${bossFor(i * 2).name}</small>`;
-    b.addEventListener('click', e => { e.preventDefault(); sound.init(); sound.play('ui'); if (!open) { b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake'); $('islmsg').textContent = `🔒 لازم تخلّص المرحلة 10 من ${THEMES[i - 2].name} أول`; return; } openLevels(i); });
+    b.innerHTML = `<em class="ich">الفصل ${i}</em><i>${open ? th.emoji : '🔒'}</i><b>${th.name}</b><p class="ist">${th.storyShort || th.story}</p><span>${open ? `${n}/${LPI} ${n >= LPI ? '✅' : '⭐'}` : 'مقفلة'}</span><small>👑 ${bossFor(i).name}</small>`;
+    b.addEventListener('click', e => { e.preventDefault(); sound.init(); sound.play('ui'); if (!open) { b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake'); $('islmsg').textContent = `🔒 لازم تخلّص المرحلة ${LPI} من ${THEMES[i - 2].name} أول`; return; } openLevels(i); });
     box.appendChild(b);
   }
-  $('islcount').textContent = `${nd}/${ISL}`; $('islmsg').textContent = 'كل جزيرة فيها 10 مراحل · الزعماء 👑 بالمرحلة 5 و 10 · خلّص المرحلة 10 عشان تفتح الجزيرة اللي بعدها 🏝';
+  $('islcount').textContent = `${nd}/${ISL}`; $('islmsg').textContent = '20 جزيرة × 5 مراحل (100 مرحلة) · زعيم 👑 بنهاية كل جزيرة · لكل جزيرة قصتها الخاصة 📖';
 }
-function openIslands() { G.mode = 'menu'; renderIslands(); show('islands'); H.hud.classList.add('hidden'); input.unlock(); }
+function openIslands() { G.mode = 'menu'; hideStoryToast(); renderIslands(); show('islands'); H.hud.classList.add('hidden'); input.unlock(); }
 function renderLevels() {
   const I = G.selIsl || 1, th = THEMES[I - 1], box = $('lvlgrid'); box.innerHTML = ''; let n = 0;
   $('lvltitle').textContent = `${th.emoji} ${th.name}`; $('levels').style.setProperty('--bc', th.ui);
+  const stBox = $('islStory');
+  if (stBox) {
+    stBox.style.setProperty('--bc', th.ui);
+    const chEl = $('islCh'); if (chEl) chEl.textContent = `الفصل ${I} من ${ISL}`;
+    const bEl = $('islBossTag'); if (bEl) bEl.textContent = `👑 زعيم الجزيرة: ${bossFor(I).name}`;
+    const txEl = $('islStoryText'); if (txEl) txEl.textContent = th.story || '';
+  }
   for (let l = 1; l <= LPI; l++) {
     const gl = glOf(I, l), open = lvlOpen(gl), done = beatenLvl(gl), boss = isBossLvl(gl); if (done) n++;
     const b = document.createElement('button'); b.className = 'lvl' + (open ? '' : ' locked') + (done ? ' done' : '') + (boss ? ' bosslvl' : ''); b.dataset.l = l; b.dataset.gl = gl;
@@ -749,7 +773,7 @@ function renderLevels() {
     b.addEventListener('click', e => { e.preventDefault(); sound.init(); if (!open) { sound.play('ui'); b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake'); $('lvlmsg').textContent = `🔒 لازم تخلّص المرحلة ${l - 1} أول`; return; } sound.play('ui'); tryFullscreen(); startGame(gl); });
     box.appendChild(b);
   }
-  $('lvlcount').textContent = `${n}/${LPI}`; $('lvlmsg').textContent = 'المراحل العادية بلا زعيم · المرحلة 5 و 10 آخرها زعيم 👑 · خلّص المرحلة عشان تفتح اللي بعدها';
+  $('lvlcount').textContent = `${n}/${LPI}`; $('lvlmsg').textContent = 'المراحل 1–4 بلا زعيم · المرحلة 5 آخرها زعيم الجزيرة 👑 · خلّص المرحلة عشان تفتح اللي بعدها';
 }
 function openLevels(i) { if (i >= 1 && i <= ISL) G.selIsl = i; if (!G.selIsl) G.selIsl = islOf(G.gl || 1); G.mode = 'menu'; renderLevels(); show('levels'); H.hud.classList.add('hidden'); input.unlock(); }
 function applyTheme(th) {
@@ -767,7 +791,7 @@ function resetGame() {
   vm.setWeapon(0, true); PM.guns.forEach((g, k) => g.group.visible = k === 0); PM.g.rotation.z = 0; applyAllSkins();
   Object.assign(G, { nadeWarned: false, wave: 0, score: 0, kills: 0, heads: 0, shots: 0, hits: 0, streak: 0, streakT: 0, mult: 1, slowmo: 0 });
   intermission = 0; spawnQueue = [];
-  H.boss.classList.add('hidden'); for (const k in last) delete last[k]; for (const b of ehpPool) { b.on = false; b.el.style.opacity = 0; }
+  hideStoryToast(); H.boss.classList.add('hidden'); for (const k in last) delete last[k]; for (const b of ehpPool) { b.on = false; b.el.style.opacity = 0; }
 }
 function startEndless() {
   sound.init(); sound.setVolume(S.vol); sound.setMusic(S.music);
@@ -780,10 +804,10 @@ function startEndless() {
 }
 function startGame(lvl) {
   sound.init(); sound.setVolume(S.vol); sound.setMusic(S.music);
-  const qs = new URLSearchParams(location.search), dbgB = +(qs.get('boss') || 0), useBoss = dbgB >= 1 && dbgB <= 10 && !G.bossUsed;
+  const qs = new URLSearchParams(location.search), dbgB = +(qs.get('boss') || 0), useBoss = dbgB >= 1 && dbgB <= BOSSES.length && !G.bossUsed;
   const dbgI = +(qs.get('island') || 0), useHook = !useBoss && dbgI >= 1 && dbgI <= ISL && !G.hookUsed;
   let gl = clamp((lvl | 0) || G.gl || 1, 1, TOTAL);
-  if (useBoss) { gl = glOf(Math.ceil(dbgB / 2), dbgB % 2 ? 5 : 10); G.bossUsed = true; }
+  if (useBoss) { gl = glOf(dbgB, LPI); G.bossUsed = true; }
   else if (useHook) { gl = glOf(dbgI, clamp(+(qs.get('level') || 1) | 0, 1, LPI)); G.hookUsed = true; }
   resetGame(); G.endless = false; G.endlessMult = 1; G.gl = gl; G.level = gl; G.selIsl = islOf(gl); G.theme = world.setTheme(islOf(gl) - 1); applyTheme(G.theme);
   G.mode = 'play'; show(null); H.hud.classList.remove('hidden'); input.setTouchVisible(input.touchMode); applyHudSettings();
@@ -793,13 +817,13 @@ function startGame(lvl) {
 }
 function pauseGame() { if (G.mode !== 'play') return; G.mode = 'paused'; show('pause'); input.unlock(); input.reset(); }
 function resumeGame() { if (G.mode !== 'paused') return; G.mode = 'play'; show(null); input.lock(); last.t = performance.now(); }
-function toMenu() { G.mode = 'menu'; show('menu'); H.hud.classList.add('hidden'); input.unlock(); enemies.clear(); projectiles.clear(); world.restoreProps(); spawnDemo(); updateBest(); sound.setIntensity(0); }
+function toMenu() { G.mode = 'menu'; hideStoryToast(); show('menu'); H.hud.classList.add('hidden'); input.unlock(); enemies.clear(); projectiles.clear(); world.restoreProps(); spawnDemo(); updateBest(); sound.setIntensity(0); }
 function resetShareUI() { const fb = $('shareFeedback'); if (fb) { fb.innerHTML = ''; fb.classList.add('hidden'); } }
 function levelDone(gl) {
   P.invuln = 999; input.unlock(); input.reset(); G.slowmo = 1.2; spawnQueue = []; intermission = 1e9; markBeaten(gl);
   const last = gl >= TOTAL, I = islOf(gl), lv = lvOf(gl), th = THEMES[I - 1], newIsl = lv === LPI && !last, nth = newIsl ? THEMES[I] : null, boss = isBossLvl(gl);
   const title = `${th.name} – المرحلة ${lv} خلصت ✅`;
-  announce(last ? '🏆 فزت!' : title, last ? 'خلصت الجزر الخمسة كلها' : newIsl ? `فتحت جزيرة جديدة 🏝 ${nth.emoji} ${nth.name}` : `انفتحت المرحلة ${lv + 1} 🔓`);
+  hideStoryToast(); announce(last ? '🏆 فزت!' : title, last ? 'أنهيت الـ 20 جزيرة وملحمة عاصفة النيون بالكامل! 🎉' : newIsl ? `فتحت الجزيرة ${I + 1} 🏝 ${nth.emoji} ${nth.name}` : `انفتحت المرحلة ${lv + 1} 🔓`);
   const best = LS.get('ns_best', 0), rec = G.score > best; if (rec) LS.set('ns_best', G.score);
   const bestW = Math.max(LS.get('ns_best_wave', 0), G.wave); LS.set('ns_best_wave', bestW);
   const lc = 150 + 10 * gl + (boss ? 100 : 0); Shop.add(lc);
@@ -811,7 +835,7 @@ function levelDone(gl) {
     $('oMenu').textContent = '🗺 المراحل';
     G.mode = 'over'; G.overKind = last ? 'win' : 'next'; $('oTitle').textContent = last ? '🏆 فزت! خلصت كل الجزر' : title; $('oTitle').className = 'win';
     const parts = []; if (boss) parts.push(`هزمت ${bossFor(bossIdx(gl)).name} 👑`);
-    if (last) parts.push('خلصت الخمسين مرحلة 🏆'); else if (newIsl) parts.push(`فتحت جزيرة جديدة 🏝 ${nth.emoji} ${nth.name}`); else parts.push(`انفتحت المرحلة ${lv + 1} 🔓`);
+    if (last) parts.push('أنهيت الـ 100 مرحلة في الـ 20 جزيرة 🏆'); else if (newIsl) parts.push(`فتحت جزيرة جديدة 🏝 ${nth.emoji} ${nth.name}`); else parts.push(`انفتحت المرحلة ${lv + 1} 🔓`);
     $('oSub').textContent = parts.join(' · '); $('oSub').classList.remove('hidden');
     $('oAgain').textContent = last ? '↺ العب المرحلة مجدداً' : newIsl ? `▶ المرحلة التالية (${nth.emoji} ${nth.name})` : '▶ المرحلة التالية';
     fillStats(best, rec); $('oWave').textContent = `${th.emoji} ${lv}/${LPI}`; show('over'); H.hud.classList.add('hidden');
@@ -870,7 +894,7 @@ function bindSettings() {
 }
 function closeSettings() { applyHudSettings(); if (settingsReturn === 'game') { settingsReturn = 'pause'; resumeGame(); return; } show(settingsReturn); }
 const click = (id, fn) => $(id).addEventListener('click', e => { e.preventDefault(); sound.init(); sound.play('ui'); fn(); });
-click('mPlay', () => { const q = new URLSearchParams(location.search), d = +(q.get('boss') || 0), di = +(q.get('island') || 0); if ((d >= 1 && d <= 10 && !G.bossUsed) || (di >= 1 && di <= ISL && !G.hookUsed)) { tryFullscreen(); startGame(); } else openIslands(); });
+click('mPlay', () => { const q = new URLSearchParams(location.search), d = +(q.get('boss') || 0), di = +(q.get('island') || 0); if ((d >= 1 && d <= BOSSES.length && !G.bossUsed) || (di >= 1 && di <= ISL && !G.hookUsed)) { tryFullscreen(); startGame(); } else openIslands(); });
 click('islBack', toMenu); click('islShop', () => openShop('islands'));
 click('lvlBack', openIslands);
 // ===== المتجر (أسلحة + سكنات وتأثيرات) =====
