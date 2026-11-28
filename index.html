@@ -59,6 +59,7 @@
     <div id="bossbar" class="hidden"><div class="name">العملاق تيتان</div><div class="track"><div class="fill" id="bossfill"></div></div></div>
     <div id="announce"></div>
     <div id="subannounce"></div>
+    <div id="storyToast" class="hidden"></div>
     <div id="feed"></div>
     <div id="dmgnums"></div>
     <div id="fps" class="hidden"></div>
@@ -242,7 +243,12 @@
 
   <div id="levels" class="screen hidden">
     <div class="panel wide lvlpanel">
-      <h2><span id="lvltitle">المراحل 🗺</span> <small id="lvlcount">0/10</small></h2>
+      <h2><span id="lvltitle">المراحل 🗺</span> <small id="lvlcount">0/5</small></h2>
+      <div id="islStory" class="isl-story">
+        <div class="isl-story-head"><span class="isl-ch" id="islCh">الفصل 1 من 20</span><span class="isl-boss-tag" id="islBossTag">👑 زعيم الجزيرة</span></div>
+        <div class="isl-story-label">📖 قصة الجزيرة</div>
+        <p id="islStoryText"></p>
+      </div>
       <div id="lvlgrid"></div>
       <div id="lvlmsg" class="lvlmsg"></div>
       <div class="row"><button class="big" id="lvlBack">‹ الجزر 🏝</button><button class="big" id="lvlShop">🛒 المتجر</button></div>
@@ -251,7 +257,7 @@
 
   <div id="islands" class="screen hidden">
     <div class="panel wide lvlpanel">
-      <h2>الجزر 🏝 <small id="islcount">0/5</small></h2>
+      <h2>الجزر 🏝 <small id="islcount">0/20</small></h2>
       <div id="islgrid"></div>
       <div id="islmsg" class="lvlmsg"></div>
       <div class="row"><button class="big" id="islBack">⌂ القائمة</button><button class="big" id="islShop">🛒 المتجر</button></div>
