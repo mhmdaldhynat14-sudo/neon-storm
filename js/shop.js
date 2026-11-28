@@ -28,11 +28,11 @@ const KILL_BONUS = 1.38; // طلب قصي: عملات قتل الوحوش +20% �
 const KILL_COINS = { rusher: 5, soldier: 8, drone: 9, brute: 22, boss: 300 };
 
 export const SKINS = [
-  { id: 'default', name: 'قياسي', desc: 'تصميم النيون الأصلي للأسلحة', price: 0, swatch: ['#545d80', '#38f3ff'], color: null, emissive: null, accent: null, metalness: 0.55, roughness: 0.45 },
-  { id: 'gold', name: 'ذهبي ملكي', desc: 'طلاء ذهبي لامع فاخر بلمسة ملكية', price: 600, swatch: ['#ffd700', '#8a6200'], color: '#ffd700', dark: '#5e4300', light: '#fff099', emissive: '#8a6200', accent: '#ffe666', metalness: 0.85, roughness: 0.24 },
-  { id: 'inferno', name: 'لهيب بركاني', desc: 'معدن بركاني متوهّج بنيران حارقة', price: 900, swatch: ['#ff3300', '#ff6600'], color: '#ff3300', dark: '#360a04', light: '#ff8533', emissive: '#ff6600', accent: '#ff9429', metalness: 0.65, roughness: 0.34 },
-  { id: 'frost', name: 'جليد قطبي', desc: 'بلّور ثلجي سماوي بتوهّج قطبي بارد', price: 900, swatch: ['#44f5ff', '#00aacc'], color: '#44f5ff', dark: '#0b344d', light: '#cffbff', emissive: '#00aacc', accent: '#7ff8ff', metalness: 0.72, roughness: 0.22 },
-  { id: 'void', name: 'نيون المجرة', desc: 'طاقة كونية بنفسجية نادرة من أعماق الفضاء', price: 1500, swatch: ['#c026d3', '#7c3aed'], color: '#c026d3', dark: '#230838', light: '#f0abfc', emissive: '#7c3aed', accent: '#e879f9', metalness: 0.78, roughness: 0.26 },
+  { id: 'default', icon: '🔫', name: 'قياسي', desc: 'الشكل الأصلي للأسلحة بدون تعديل', shapeDesc: 'الشكل الأصلي القياسي', perkDesc: 'بدون ميزة إضافية', perk: {}, price: 0, swatch: ['#545d80', '#38f3ff'], color: null, emissive: null, accent: null, metalness: 0.55, roughness: 0.45 },
+  { id: 'gold', icon: '👑', name: 'تاج الملوك الذهبي', desc: 'هيكل مدرّع بتاج ملكي وكاتم مجنّح وليزر ذهبي', shapeDesc: 'تاج ملكي + دروع جانبية + كاتم مجنّح وليزر ذهبي', perkDesc: '+25% ذهب من كل قتلة + 20% ضرر إضافي للهيدشوت', perk: { coinMult: 1.25, headMult: 1.20 }, price: 600, swatch: ['#ffd700', '#8a6200'], color: '#ffd700', dark: '#5e4300', light: '#fff099', emissive: '#8a6200', accent: '#ffe666', metalness: 0.88, roughness: 0.2 },
+  { id: 'inferno', icon: '🔥', name: 'فكّ التنين البركاني', desc: 'قرون تنين نارية ومفاعل حمم متوهّج على السلاح', shapeDesc: 'قرون وأنياب تنين أمامية + مفاعل حمم نابض', perkDesc: 'رصاص حارق يشعل الأعداء 3 ثواني + 15% ضرر إضافي', perk: { dmgMult: 1.15, burn: 3 }, price: 900, swatch: ['#ff3300', '#ff6600'], color: '#ff3300', dark: '#2c0703', light: '#ff8533', emissive: '#ff5500', accent: '#ff9429', metalness: 0.68, roughness: 0.3 },
+  { id: 'frost', icon: '❄️', name: 'ناب الصقيع الجليدي', desc: 'أشواك كريستال ثلجية وخزان تبريد ومنظار ماسي عائم', shapeDesc: '6 أشواك كريستال + خزان تبريد + منظار ماسي عائم', perkDesc: 'تجميد يبطّئ الأعداء 45% + تلقيم أسرع 25%', perk: { slow: 2.2, reloadMult: 0.75 }, price: 900, swatch: ['#44f5ff', '#00aacc'], color: '#44f5ff', dark: '#0b344d', light: '#cffbff', emissive: '#00aacc', accent: '#7ff8ff', metalness: 0.72, roughness: 0.2 },
+  { id: 'void', icon: '🌌', name: 'مدفع المجرة الكوني', desc: 'سبطانة مزدوجة فضائية وحلقة طاقة دوّارة وجوهرة عائمة', shapeDesc: 'سبطانة مزدوجة + حلقة طاقة دوّارة + جوهرة وأجنحة فضائية', perkDesc: 'سرعة إطلاق +20% + كل 4 طلقات موجة انفجار مجرّية للأعداء القريبين', perk: { rateMult: 0.80, voidNova: 4 }, price: 1500, swatch: ['#c026d3', '#7c3aed'], color: '#c026d3', dark: '#230838', light: '#f0abfc', emissive: '#7c3aed', accent: '#e879f9', metalness: 0.8, roughness: 0.22 },
 ];
 
 export const HEAD_FX = [
@@ -79,7 +79,7 @@ export const Shop = {
   shieldLevel() { return st.shield; },
   add(n) { st.coins += Math.max(0, Math.round(n)); save(); return st.coins; },
   spend(n) { if (st.coins < n) return false; st.coins -= n; save(); return true; },
-  killCoins(type) { return Math.round((KILL_COINS[type] ?? 5) * KILL_BONUS); },
+  killCoins(type) { const cm = this.skinDef()?.perk?.coinMult || 1; return Math.round((KILL_COINS[type] ?? 5) * KILL_BONUS * cm); },
   level(id, k) { return (st.up[id] && st.up[id][k]) || 0; },
   upgradeCost(id, k) { const L = this.level(id, k); return L >= MAX_UP ? null : UP_COST[L]; },
   buyUpgrade(id, k) {
