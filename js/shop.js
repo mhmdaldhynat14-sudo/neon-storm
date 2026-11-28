@@ -1,4 +1,4 @@
-// shop.js — عملات 💰 والمشتريات (localStorage). Economy: coins per kill, upgrades, armor, shield, bought weapons.
+// shop.js — عملات 💰 والمشتريات (localStorage). Economy: coins per kill, upgrades, armor, shield, bought weapons, skins, headshot FX.
 import { WEAPONS } from './weapons.js';
 
 const KEY = 'ns_shop_v1';
@@ -27,16 +27,47 @@ const HEART = { gain: i => 15 + 5 * i, per: 22, cost: [150, 250, 400, 600, 850, 
 const KILL_BONUS = 1.38; // طلب قصي: عملات قتل الوحوش +20% ثم +15% (1.2 × 1.15)
 const KILL_COINS = { rusher: 5, soldier: 8, drone: 9, brute: 22, boss: 300 };
 
+export const SKINS = [
+  { id: 'default', name: 'قياسي', desc: 'تصميم النيون الأصلي للأسلحة', price: 0, swatch: ['#545d80', '#38f3ff'], color: null, emissive: null, accent: null, metalness: 0.55, roughness: 0.45 },
+  { id: 'gold', name: 'ذهبي ملكي', desc: 'طلاء ذهبي لامع فاخر بلمسة ملكية', price: 600, swatch: ['#ffd700', '#8a6200'], color: '#ffd700', dark: '#5e4300', light: '#fff099', emissive: '#8a6200', accent: '#ffe666', metalness: 0.85, roughness: 0.24 },
+  { id: 'inferno', name: 'لهيب بركاني', desc: 'معدن بركاني متوهّج بنيران حارقة', price: 900, swatch: ['#ff3300', '#ff6600'], color: '#ff3300', dark: '#360a04', light: '#ff8533', emissive: '#ff6600', accent: '#ff9429', metalness: 0.65, roughness: 0.34 },
+  { id: 'frost', name: 'جليد قطبي', desc: 'بلّور ثلجي سماوي بتوهّج قطبي بارد', price: 900, swatch: ['#44f5ff', '#00aacc'], color: '#44f5ff', dark: '#0b344d', light: '#cffbff', emissive: '#00aacc', accent: '#7ff8ff', metalness: 0.72, roughness: 0.22 },
+  { id: 'void', name: 'نيون المجرة', desc: 'طاقة كونية بنفسجية نادرة من أعماق الفضاء', price: 1500, swatch: ['#c026d3', '#7c3aed'], color: '#c026d3', dark: '#230838', light: '#f0abfc', emissive: '#7c3aed', accent: '#e879f9', metalness: 0.78, roughness: 0.26 },
+];
+
+export const HEAD_FX = [
+  { id: 'default', name: 'شرار قياسي', desc: 'تأثير الشرار المعتاد عند إصابة الرأس', price: 0, icon: '✨', swatch: ['#7ff8ff', '#ffd23d'] },
+  { id: 'plasma', name: 'انفجار بلازما', desc: 'حلقة صدمة سيان وماجنتا متوسعة + شرار نيون', price: 500, icon: '🌀', swatch: ['#38f6ff', '#ff3df0'] },
+  { id: 'lightning', name: 'صاعقة كهربائية', desc: 'صاعقة برق عمودية ساطعة + شرار كهربائي', price: 800, icon: '⚡', swatch: ['#e0fbff', '#38d9ff'] },
+  { id: 'goldburst', name: 'انفجار ذهبي', desc: 'انفجار نجوم ذهبي فاخر مع شظايا ذهبية', price: 1200, icon: '🌟', swatch: ['#ffd700', '#fff4b0'] },
+];
+
 let st = load();
 function load() {
   let s = null; try { s = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch { s = null; }
   s = s && typeof s === 'object' ? s : {};
-  return { coins: +s.coins || 0, up: s.up || {}, bought: s.bought || {}, armor: +s.armor || 0, shield: +s.shield || 0, heart: +s.heart || 0, acap: +s.acap || 0 };
+  const skinsOwned = { default: true, ...(s.skinsOwned && typeof s.skinsOwned === 'object' ? s.skinsOwned : {}) };
+  const fxOwned = { default: true, ...(s.fxOwned && typeof s.fxOwned === 'object' ? s.fxOwned : {}) };
+  const skin = (s.skin && skinsOwned[s.skin]) ? s.skin : 'default';
+  const headFx = (s.headFx && fxOwned[s.headFx]) ? s.headFx : 'default';
+  return {
+    coins: +s.coins || 0,
+    up: s.up || {},
+    bought: s.bought || {},
+    armor: +s.armor || 0,
+    shield: +s.shield || 0,
+    heart: +s.heart || 0,
+    acap: +s.acap || 0,
+    skinsOwned,
+    skin,
+    fxOwned,
+    headFx,
+  };
 }
 function save() { try { localStorage.setItem(KEY, JSON.stringify(st)); if (!window.__nsRestoring) { localStorage.setItem('ns_local_ts', String(Date.now())); window.dispatchEvent(new CustomEvent('ns:save')); } } catch { } }
 
 export const Shop = {
-  UP_COST, UP_STATS, MAX_UP, ARMOR, SHIELD, HEART,
+  UP_COST, UP_STATS, MAX_UP, ARMOR, SHIELD, HEART, SKINS, HEAD_FX,
   reload() { st = load(); },
   heartLevel() { return st.heart; },
   heartHp() { let s = 0; for (let i = 0; i < st.heart; i++) s += HEART.gain(i); return s; },
@@ -64,6 +95,28 @@ export const Shop = {
   nextCap() { const p = ACAP[st.acap]; return p == null ? null : { cap: this.armorCap() + ACAP_GAIN(st.acap), price: p, add: ACAP_GAIN(st.acap) }; },
   buyCap() { const c = this.nextCap(); if (!c || !this.spend(c.price)) return false; st.acap++; save(); return true; },
   buyShield() { const s = this.nextShield(); if (!s || !this.spend(s.price)) return false; st.shield++; save(); return true; },
+  // ---- weapon skins ----
+  skin() { return st.skin || 'default'; },
+  skinDef(id = st.skin) { return SKINS.find(s => s.id === id) || SKINS[0]; },
+  hasSkin(id) { return id === 'default' || !!st.skinsOwned[id]; },
+  buySkin(id) {
+    const s = SKINS.find(x => x.id === id); if (!s) return false;
+    if (this.hasSkin(id)) { st.skin = id; save(); return true; }
+    if (!this.spend(s.price)) return false;
+    st.skinsOwned[id] = true; st.skin = id; save(); return true;
+  },
+  equipSkin(id) { if (!this.hasSkin(id)) return false; st.skin = id; save(); return true; },
+  // ---- headshot kill effects ----
+  headFx() { return st.headFx || 'default'; },
+  headFxDef(id = st.headFx) { return HEAD_FX.find(f => f.id === id) || HEAD_FX[0]; },
+  hasHeadFx(id) { return id === 'default' || !!st.fxOwned[id]; },
+  buyHeadFx(id) {
+    const f = HEAD_FX.find(x => x.id === id); if (!f) return false;
+    if (this.hasHeadFx(id)) { st.headFx = id; save(); return true; }
+    if (!this.spend(f.price)) return false;
+    st.fxOwned[id] = true; st.headFx = id; save(); return true;
+  },
+  equipHeadFx(id) { if (!this.hasHeadFx(id)) return false; st.headFx = id; save(); return true; },
   // stats applied when a level starts
   armorStat() { const a = ARMOR[st.armor - 1]; return { hp: a ? a.hp : 0, dr: a ? a.dr : 0 }; },
   shieldStart() { const s = SHIELD[st.shield - 1]; return s ? s.start : 0; },
