@@ -112,8 +112,15 @@
       </div>
       <div class="best">أعلى نتيجة: <b id="bestScore">0</b> · المراحل المكتملة: <b id="bestWave">0</b> · 💰 <b id="menuCoins">0</b></div>
       <div id="cloudBox" class="cloudbox"></div>
-      <button class="big primary" id="mPlay">▶ العب · الجزر 🏝</button>
-      <button class="big" id="mShop">🛒 المتجر</button>
+      <div class="row playrow">
+        <button class="big primary" id="mPlay">▶ العب · الجزر 🏝</button>
+        <button class="big endlessbtn" id="mEndless">♾️ البقاء اللانهائي</button>
+      </div>
+      <div class="row menu3">
+        <button class="big" id="mShop">🛒 المتجر</button>
+        <button class="big" id="mLeader">🏆 المتصدرون</button>
+        <button class="big dailybtn" id="mDaily">🎁 اليومية<i id="dailyDot" class="dotbadge hidden"></i></button>
+      </div>
       <div class="row">
         <button class="big" id="mSettings">⚙ الإعدادات</button>
         <button class="big" id="mHow">؟ طريقة اللعب</button>
@@ -265,6 +272,8 @@
         <div><span>إصابات الرأس</span><b id="oHead">0</b></div>
         <div><span>أعلى نتيجة</span><b id="oBest">0</b></div>
       </div>
+      <button class="big sharebtn" id="oShare">📲 شارك نتيجتك</button>
+      <div id="shareFeedback" class="sharefb hidden"></div>
       <div class="row"><button class="big primary" id="oAgain">↺ أعد المحاولة</button>
       <button class="big" id="oMenu">🗺 المراحل</button><button class="big" id="oShop">🛒 المتجر</button></div>
     </div>
@@ -273,8 +282,32 @@
   <div id="shop" class="screen hidden">
     <div class="panel wide shoppanel">
       <div class="shophead"><button class="small" id="shopBack">⌂ رجوع</button><h2>المتجر 🛒</h2><div class="coinbig">💰 <b id="shopCoins">0</b></div></div>
+      <div class="tabs" id="shopTabs">
+        <button class="tab on" data-stab="gear" type="button">🔫 الأسلحة والدروع</button>
+        <button class="tab" data-stab="cosmetics" type="button">🎨 السكنات والتأثيرات</button>
+      </div>
       <div id="shopMsg"></div>
       <div id="shopBody"></div>
+    </div>
+  </div>
+
+  <div id="leaderboard" class="screen hidden">
+    <div class="panel wide lbpanel">
+      <div class="shophead"><button class="small" id="lbBack">⌂ رجوع</button><h2>🏆 لوحة المتصدرين</h2><button class="small" id="lbRefresh" title="تحديث">↻ تحديث</button></div>
+      <div class="tabs" id="lbTabs">
+        <button class="tab on" data-lbtab="story" type="button">أعلى سكور (القصة)</button>
+        <button class="tab" data-lbtab="endless" type="button">♾️ طور البقاء اللانهائي</button>
+      </div>
+      <div id="lbBody" class="scroll lbbody"></div>
+      <div id="lbMe" class="lbme"></div>
+    </div>
+  </div>
+
+  <div id="daily" class="screen hidden">
+    <div class="panel wide dailypanel">
+      <div class="shophead"><button class="small" id="dailyBack">⌂ رجوع</button><h2>🎁 اليومية والمهمات</h2><div class="coinbig">💰 <b id="dailyCoins">0</b></div></div>
+      <div id="dailyMsg"></div>
+      <div id="dailyBody" class="scroll dailybody"></div>
     </div>
   </div>
 
