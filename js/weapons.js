@@ -4,7 +4,7 @@ export const WEAPONS = [
   { id: 'rifle', skill: 'freeshot', skillDesc: 'ضربة الرأس بترجّع طلقة للمخزن', scope: { zoom: 2.0, type: 'acog', name: 'منظار ×2' }, name: 'البندقية النبضية', auto: true, rate: 0.095, dmg: 19, head: 2.0, mag: 30, reserve: 240, maxReserve: 360, reload: 1.5, spread: 0.010, moveSpread: 0.022, recoil: 0.011, kick: 0.05, pellets: 1, range: 140, falloff: [40, 100, 0.6], color: '#5ff6ff', tracer: 0.035, sound: 'rifle', shake: 0.06 },
   { id: 'shotgun', skill: 'close', skillDesc: 'من قريب (أقل من 8 متر) الضرر +35%', scope: { zoom: 1.3, type: 'ring', name: 'منظار قريب ×1.3' }, name: 'المدفع المشتّت', auto: true, rate: 0.72, dmg: 12, head: 1.5, mag: 7, reserve: 42, maxReserve: 63, reload: 1.9, spread: 0.07, moveSpread: 0.02, recoil: 0.06, kick: 0.16, pellets: 10, range: 45, falloff: [9, 30, 0.25], color: '#ffc45f', tracer: 0.03, sound: 'shotgun', shake: 0.25 },
   { id: 'pistol', skill: 'fifth', skillDesc: 'كل خامس طلقة ضرر ×2', scope: { zoom: 1.5, type: 'dot', name: 'نقطة حمراء ×1.5' }, name: 'المسدس الليزري', auto: true, rate: 0.2, dmg: 30, head: 2.2, mag: 12, reserve: Infinity, maxReserve: Infinity, reload: 1.05, spread: 0.004, moveSpread: 0.012, recoil: 0.024, kick: 0.08, pellets: 1, range: 120, falloff: [30, 80, 0.6], color: '#ff6ad5', tracer: 0.03, sound: 'pistol', shake: 0.08 },
-  { id: 'launcher', skillDesc: 'انفجار أكبر 40%', scope: { zoom: 2.6, type: 'range', name: 'منظار مدى ×2.6' }, name: 'قاذف البلازما', auto: true, rate: 0.85, dmg: 120, head: 1, mag: 4, reserve: 8, maxReserve: 16, reload: 2.1, spread: 0.0, moveSpread: 0.0, recoil: 0.05, kick: 0.2, pellets: 0, projectile: { speed: 42, radius: 6.4 }, range: 150, color: '#7dff6a', tracer: 0, sound: 'shotgun', shake: 0.2, unlockWave: 4 },
+  { id: 'launcher', skillDesc: 'انفجار أكبر 40%', scope: { zoom: 2.6, type: 'range', name: 'منظار مدى ×2.6' }, name: 'قاذف البلازما', auto: true, rate: 0.85, dmg: 120, head: 1, mag: 4, reserve: 8, maxReserve: 16, reload: 2.1, spread: 0.0, moveSpread: 0.0, recoil: 0.05, kick: 0.2, pellets: 0, projectile: { speed: 42, radius: 6.4 }, range: 150, color: '#7dff6a', tracer: 0, sound: 'shotgun', shake: 0.2 },
   // ---- purchasable in the shop (price in coins) ----
   { id: 'thunder', skill: 'storm', skillDesc: 'كل 10 طلقات صاعقة تضرب كل الأعداء بقرب 12 متر بنص الضرر', model: 'rifle', scope: { zoom: 2.0, type: 'acog', name: 'منظار ×2' }, name: 'الرشاش الصاعق', desc: 'رشاش سريع جداً وذخيرة كبيرة', price: 600, auto: true, rate: 0.0418, dmg: 13, head: 2.0, mag: 60, reserve: 300, maxReserve: 480, reload: 1.6, spread: 0.014, moveSpread: 0.03, recoil: 0.012, kick: 0.05, pellets: 1, range: 130, falloff: [35, 90, 0.6], color: '#fff06a', tracer: 0.03, sound: 'rifle', shake: 0.07 },
   { id: 'frost', skill: 'freeze', skillDesc: 'الأعداء اللي تنضرب يتباطأوا 50% لمدة ثانيتين', model: 'shotgun', scope: { zoom: 1.3, type: 'ring', name: 'منظار قريب ×1.3' }, name: 'مدفع الجليد', desc: 'طلقات مشتّتة تضرب أعداء كتار قريبين', price: 900, auto: true, rate: 0.8, dmg: 15, head: 1.5, mag: 6, reserve: 36, maxReserve: 54, reload: 2.1, spread: 0.08, moveSpread: 0.02, recoil: 0.07, kick: 0.16, pellets: 14, range: 50, falloff: [10, 32, 0.3], color: '#7ff8ff', tracer: 0.03, sound: 'shotgun', shake: 0.3 },
@@ -61,6 +61,135 @@ export function buildGun(id, forTP = false) {
     const lh = bx(0.08, 0.07, 0.12, glove, -0.02, -0.07, lz, g);
     const la = bx(0.09, 0.09, 0.34, sleeve, -0.12, -0.15, lz + 0.2, g); la.rotation.set(0.3, 0.55, 0);
   }
+  // ---- 3D Skin Remodel Kits (distinct geometry per skin!) ----
+  const isP = id === 'pistol', isL = id === 'launcher', isS = id === 'shotgun';
+  const zTip = isP ? -0.26 : isL ? -0.50 : -0.68;
+  const zMid = isP ? -0.08 : -0.20;
+  const wBody = isP ? 0.048 : isL ? 0.095 : isS ? 0.078 : 0.062;
+  const skinKits = {};
+  const animParts = {};
+
+  // 1) GOLD ROYAL KIT: Crown crest, winged compensator, gilded side armor, golden laser beam
+  {
+    const k = new THREE.Group(); k.visible = false;
+    const gGold = mat('#ffd700', { metalness: 0.92, roughness: 0.18, emissive: '#6e4b00', emissiveIntensity: 0.35 });
+    const gDark = mat('#3b2800', { metalness: 0.85, roughness: 0.25 });
+    const gGlow = glowMat('#ffe97d');
+    // Royal 3-prong crown crest on top rail
+    bx(0.055, 0.02, 0.14, gDark, 0, 0.105, zMid + 0.04, k);
+    for (let i = -1; i <= 1; i++) {
+      const sp = new THREE.Mesh(new THREE.ConeGeometry(0.015, i === 0 ? 0.065 : 0.048, 4), gGold);
+      sp.position.set(0, 0.138 + (i === 0 ? 0.008 : 0), zMid + 0.04 + i * 0.045); k.add(sp);
+    }
+    // Flared royal winged compensator muzzle brake
+    bx(wBody * 2.5, 0.065, 0.10, gGold, 0, 0.01, zTip - 0.03, k);
+    const wL = bx(0.016, 0.085, 0.13, gGold, -wBody * 1.35, 0.025, zTip - 0.02, k); wL.rotation.z = 0.35;
+    const wR = bx(0.016, 0.085, 0.13, gGold, wBody * 1.35, 0.025, zTip - 0.02, k); wR.rotation.z = -0.35;
+    // Armored gilded side shields
+    bx(0.022, 0.075, isP ? 0.22 : 0.38, gGold, -wBody * 1.05, 0.01, zMid, k);
+    bx(0.022, 0.075, isP ? 0.22 : 0.38, gGold, wBody * 1.05, 0.01, zMid, k);
+    // Under-barrel golden laser sight + glowing beam
+    cy(0.016, 0.016, 0.11, gDark, 0, -0.055, zTip + 0.12, k, 8);
+    cy(0.004, 0.004, 0.42, gGlow, 0, -0.055, zTip - 0.14, k, 6);
+    g.add(k); skinKits.gold = k;
+  }
+
+  // 2) INFERNO DRAGON KIT: Swept dragon horn blades, glowing molten core reactor, twin flame exhaust horns
+  {
+    const k = new THREE.Group(); k.visible = false;
+    const iObs = mat('#1d0705', { metalness: 0.72, roughness: 0.35, emissive: '#3d0800', emissiveIntensity: 0.35 });
+    const iBlade = mat('#ff3b00', { metalness: 0.75, roughness: 0.25, emissive: '#ff4500', emissiveIntensity: 0.65 });
+    const iGlow = glowMat('#ff9429');
+    // Giant swept dragon horns flanking muzzle & barrel
+    for (const sgn of [-1, 1]) {
+      const horn = new THREE.Mesh(new THREE.ConeGeometry(0.028, isP ? 0.24 : 0.42, 5), iBlade);
+      horn.rotation.x = -Math.PI / 2 - 0.18;
+      horn.rotation.z = sgn * 0.28;
+      horn.position.set(sgn * (wBody + 0.038), 0.035, zTip - 0.02);
+      k.add(horn);
+      // Secondary jagged dorsal fin blades
+      const fin = bx(0.014, 0.095, 0.20, iObs, sgn * (wBody + 0.02), 0.055, zMid - 0.02, k);
+      fin.rotation.set(-0.35, 0, sgn * -0.42);
+      bx(0.018, 0.018, 0.24, iGlow, sgn * (wBody + 0.012), 0.02, zMid - 0.05, k);
+    }
+    // Glowing molten core reactor on top receiver
+    const core = cy(0.032, 0.032, isP ? 0.14 : 0.22, iGlow, 0, 0.092, zMid, k, 8);
+    // Dark rib cages around reactor
+    for (let j = -1; j <= 1; j++) {
+      const rib = new THREE.Mesh(new THREE.TorusGeometry(0.042, 0.008, 6, 12), iObs);
+      rib.position.set(0, 0.092, zMid + j * 0.055);
+      k.add(rib);
+    }
+    animParts.lavaCore = core;
+    g.add(k); skinKits.inferno = k;
+  }
+
+  // 3) FROST CRYO KIT: Faceted ice crystal spikes, glowing cryo canister, floating diamond cryo prism sight
+  {
+    const k = new THREE.Group(); k.visible = false;
+    const fIce = mat('#66f7ff', { metalness: 0.35, roughness: 0.12, emissive: '#00aacc', emissiveIntensity: 0.55, transparent: true, opacity: 0.9 });
+    const fDark = mat('#0a2840', { metalness: 0.8, roughness: 0.25 });
+    const fGlow = glowMat('#bffcff');
+    // 6 dramatic angled crystal ice spikes jutting forward & outward
+    const spikeCfg = [
+      [-1, 0.05, zMid + 0.02, 0.14, 0.45],
+      [ 1, 0.05, zMid + 0.02, 0.14, -0.45],
+      [-1, 0.03, zTip + 0.14, 0.19, 0.35],
+      [ 1, 0.03, zTip + 0.14, 0.19, -0.35],
+      [ 0, 0.095, zTip + 0.08, 0.15, 0],
+      [ 0, -0.055, zTip + 0.06, 0.13, Math.PI],
+    ];
+    for (const [sx, sy, sz, len, rz] of spikeCfg) {
+      const sp = new THREE.Mesh(new THREE.ConeGeometry(0.024, len, 5), fIce);
+      sp.rotation.set(-Math.PI / 2 + (sx === 0 ? (sy > 0 ? 0.32 : -0.32) : 0.22), 0, rz);
+      sp.position.set(sx * (wBody + 0.022), sy, sz);
+      k.add(sp);
+    }
+    // Under-barrel cryo coolant cylinder tank with glowing rings
+    cy(0.034, 0.034, isP ? 0.14 : 0.24, fGlow, 0, -0.068, zMid - 0.06, k, 10);
+    cy(0.038, 0.038, 0.03, fDark, 0, -0.068, zMid - 0.14, k, 10);
+    cy(0.038, 0.038, 0.03, fDark, 0, -0.068, zMid + 0.02, k, 10);
+    // Floating diamond holographic cryo prism sight
+    const prism = new THREE.Mesh(new THREE.OctahedronGeometry(0.036, 0), fGlow);
+    prism.position.set(0, 0.155, zMid + 0.04);
+    k.add(prism);
+    animParts.frostPrism = prism;
+    g.add(k); skinKits.frost = k;
+  }
+
+  // 4) VOID GALAXY KIT: Split twin-railgun plasma prongs, LIVE SPINNING glowing energy halo, floating cosmic orb & alien wings
+  {
+    const k = new THREE.Group(); k.visible = false;
+    const vHull = mat('#2a0845', { metalness: 0.85, roughness: 0.2, emissive: '#4c1d95', emissiveIntensity: 0.4 });
+    const vEdge = glowMat('#e879f9');
+    const vCyan = glowMat('#38f6ff');
+    // Futuristic twin split-railgun plasma prongs extending forward
+    for (const sgn of [-1, 1]) {
+      bx(0.022, 0.042, isP ? 0.26 : 0.46, vHull, sgn * (wBody + 0.025), 0.01, zTip + 0.06, k);
+      bx(0.010, 0.014, isP ? 0.28 : 0.48, vCyan, sgn * (wBody + 0.025), 0.01, zTip + 0.04, k);
+      // Swept alien wing stabilizers
+      const wing = bx(0.11, 0.014, 0.18, vHull, sgn * (wBody + 0.065), 0.04, zMid + 0.04, k);
+      wing.rotation.set(0, sgn * 0.25, sgn * 0.35);
+      const wStrip = bx(0.115, 0.008, 0.024, vEdge, sgn * (wBody + 0.068), 0.045, zMid - 0.02, k);
+      wStrip.rotation.set(0, sgn * 0.25, sgn * 0.35);
+    }
+    // Live spinning energy halo ring encircling the barrel!
+    const halo = new THREE.Group();
+    halo.position.set(0, 0.015, zTip + 0.06);
+    const ring1 = new THREE.Mesh(new THREE.TorusGeometry(wBody + 0.065, 0.009, 8, 24), vEdge);
+    const ring2 = new THREE.Mesh(new THREE.TorusGeometry(wBody + 0.048, 0.006, 6, 18), vCyan);
+    ring2.rotation.x = Math.PI / 6;
+    halo.add(ring1); halo.add(ring2);
+    k.add(halo);
+    // Floating pulsing cosmic orb above receiver
+    const orb = new THREE.Mesh(new THREE.OctahedronGeometry(0.038, 1), vEdge);
+    orb.position.set(0, 0.155, zMid);
+    k.add(orb);
+    animParts.voidHalo = halo;
+    animParts.voidOrb = orb;
+    g.add(k); skinKits.void = k;
+  }
+
   g.add(muzzle);
   g.traverse(o => { if (o.isMesh) { o.castShadow = false; o.receiveShadow = false; } });
   const skinMats = {
@@ -72,12 +201,16 @@ export function buildGun(id, forTP = false) {
       accent: accent.color.getHex(),
     },
   };
-  return { group: g, muzzle, skinMats };
+  return { group: g, muzzle, skinMats, skinKits, animParts };
 }
 
 export function applyWeaponSkin(gunObj, skinDef) {
   const sm = gunObj && gunObj.skinMats;
   if (!sm) return;
+  const activeId = (skinDef && skinDef.id) || 'default';
+  if (gunObj.skinKits) {
+    for (const [k, grp] of Object.entries(gunObj.skinKits)) grp.visible = (k === activeId);
+  }
   if (!skinDef || skinDef.id === 'default' || !skinDef.color) {
     sm.dark.color.setHex(sm.orig.dark);
     sm.dark.emissive.setHex(0x000000);
@@ -137,6 +270,15 @@ export class Viewmodel {
   update(dt, st) {
     // st: {moving, speed01, lookDX, lookDY, reloading(0..1 or -1), sprint, onGround, aspect}
     this.bobT += dt * (st.moving && st.onGround ? 9 + st.speed01 * 4 : 0);
+    this._skinT = (this._skinT || 0) + dt;
+    const cg = this.guns[this.cur];
+    if (cg && cg.animParts) {
+      const ap = cg.animParts, tt = this._skinT;
+      if (ap.voidHalo && cg.skinKits?.void?.visible) { ap.voidHalo.rotation.z = tt * 3.2; ap.voidHalo.rotation.y = Math.sin(tt * 2) * 0.25; }
+      if (ap.voidOrb && cg.skinKits?.void?.visible) { ap.voidOrb.rotation.y = tt * 2.6; ap.voidOrb.rotation.x = tt * 1.7; ap.voidOrb.position.y = 0.155 + Math.sin(tt * 4) * 0.012; }
+      if (ap.frostPrism && cg.skinKits?.frost?.visible) { ap.frostPrism.rotation.y = tt * 2.2; ap.frostPrism.position.y = 0.155 + Math.sin(tt * 3.5) * 0.01; }
+      if (ap.lavaCore && cg.skinKits?.inferno?.visible) { const sc = 1 + Math.sin(tt * 7) * 0.08; ap.lavaCore.scale.set(sc, 1, sc); }
+    }
     this.swayX += (-st.lookDX * 0.35 - this.swayX) * Math.min(1, dt * 8); this.swayY += (st.lookDY * 0.35 - this.swayY) * Math.min(1, dt * 8);
     this.swayX = Math.max(-0.06, Math.min(0.06, this.swayX)); this.swayY = Math.max(-0.05, Math.min(0.05, this.swayY));
     this.kick += -this.kick * Math.min(1, dt * 14); this.kickRot += -this.kickRot * Math.min(1, dt * 10);
