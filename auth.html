@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0f24">
+<title>تسجيل الدخول — عاصفة النيون</title>
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<style>
+@font-face {
+  font-family: 'Cairo';
+  src: url('fonts/cairo-ar.woff2') format('woff2');
+  font-weight: 400 900;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Cairo';
+  src: url('fonts/cairo-lat.woff2') format('woff2');
+  font-weight: 400 900;
+  font-display: swap;
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  min-height: 100%;
+  background: radial-gradient(circle at 20% 20%, #1a1746 0%, #0b0f24 55%, #060814 100%);
+  color: #f4f7ff;
+  font-family: 'Cairo', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.card {
+  width: 100%;
+  max-width: 420px;
+  background: rgba(14, 19, 44, 0.88);
+  border: 1.5px solid rgba(56, 243, 255, 0.38);
+  border-radius: 22px;
+  padding: 28px 22px 24px;
+  text-align: center;
+  box-shadow: 0 0 40px rgba(56, 243, 255, 0.16), 0 18px 48px rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(12px);
+}
+.badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #38f3ff;
+  background: rgba(56, 243, 255, 0.12);
+  border: 1px solid rgba(56, 243, 255, 0.35);
+  margin-bottom: 12px;
+}
+h1 {
+  margin: 0 0 6px;
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: -0.3px;
+  background: linear-gradient(90deg, #38f3ff, #b388ff, #ff4fa3);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.sub {
+  margin: 0 0 22px;
+  font-size: 14px;
+  color: rgba(235, 243, 255, 0.8);
+  line-height: 1.6;
+}
+.gbtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 11px;
+  width: 100%;
+  padding: 14px 18px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: #ffffff;
+  color: #161b2c;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  transition: transform 0.08s ease, opacity 0.15s ease;
+}
+.gbtn:active { transform: scale(0.98); }
+.gbtn:disabled { opacity: 0.65; cursor: wait; }
+.retbtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 16px 20px;
+  margin-top: 14px;
+  border-radius: 15px;
+  text-decoration: none;
+  font-family: inherit;
+  font-size: 18px;
+  font-weight: 900;
+  color: #06101f;
+  background: linear-gradient(135deg, #38f3ff, #5dff9f);
+  box-shadow: 0 0 26px rgba(56, 243, 255, 0.45), 0 10px 24px rgba(0, 0, 0, 0.35);
+  transition: transform 0.08s ease;
+}
+.retbtn:active { transform: scale(0.98); }
+.status {
+  margin-top: 16px;
+  min-height: 24px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #7df9ff;
+  line-height: 1.5;
+}
+.status.err { color: #ff8aa3; }
+.userpill {
+  margin: 10px auto 4px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(93, 255, 159, 0.1);
+  border: 1px solid rgba(93, 255, 159, 0.38);
+  font-size: 13.5px;
+  color: #d9ffe8;
+}
+.retry {
+  display: inline-block;
+  margin-top: 14px;
+  background: none;
+  border: none;
+  color: rgba(200, 220, 255, 0.72);
+  font-family: inherit;
+  font-size: 13px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+  <main class="card">
+    <div class="badge">☁️ الحفظ السحابي لتطبيق الأندرويد</div>
+    <h1>عاصفة النيون</h1>
+    <p class="sub">سجّل دخولك بحساب جوجل لحفظ فلوسك وأسلحتك ومراحل اللعب سحابياً والرجوع تلقائياً إلى اللعبة.</p>
+
+    <div id="loginView">
+      <button class="gbtn" id="btnContinue" type="button">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+          <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.4h6.5c-.3 1.5-1.1 2.7-2.4 3.6v3h3.9c2.3-2.1 3.5-5.2 3.5-8.7z"/>
+          <path fill="#34A853" d="M12 24c3.2 0 6-1.1 8-2.9l-3.9-3c-1.1.7-2.5 1.2-4.1 1.2-3.2 0-5.8-2.1-6.8-5H1.2v3.1C3.2 21.3 7.3 24 12 24z"/>
+          <path fill="#FBBC05" d="M5.2 14.3c-.2-.7-.4-1.5-.4-2.3s.1-1.6.4-2.3V6.6H1.2C.4 8.2 0 10 0 12s.4 3.8 1.2 5.4l4-3.1z"/>
+          <path fill="#EA4335" d="M12 4.8c1.8 0 3.3.6 4.6 1.8l3.4-3.4C17.9 1.2 15.2 0 12 0 7.3 0 3.2 2.7 1.2 6.6l4 3.1c1-2.9 3.6-4.9 6.8-4.9z"/>
+        </svg>
+        <span>المتابعة بحساب جوجل</span>
+      </button>
+    </div>
+
+    <div id="doneView" class="hidden">
+      <div class="userpill" id="userInfo"></div>
+      <a class="retbtn" id="btnReturn" href="#">العودة إلى عاصفة النيون ↩</a>
+      <button class="retry" id="btnOtherAccount" type="button">استخدام حساب جوجل آخر</button>
+    </div>
+
+    <div class="status" id="status">جاري تجهيز تسجيل الدخول...</div>
+  </main>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
+import {
+  getAuth,
+  GoogleAuthProvider,
+  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
+} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
+
+const FIREBASE_CONFIG = {
+  "apiKey": "AIzaSyDlTIDoPmp27J42ISs0VhIauIGqZaou8k4",
+  "authDomain": "neon-storm-dd8aa.firebaseapp.com",
+  "projectId": "neon-storm-dd8aa",
+  "storageBucket": "neon-storm-dd8aa.firebasestorage.app",
+  "messagingSenderId": "640957761820",
+  "appId": "1:640957761820:web:f3fb22e071e219700152d9"
+};
+
+const app = initializeApp(FIREBASE_CONFIG);
+const auth = getAuth(app);
+
+const btnContinue = document.getElementById('btnContinue');
+const loginView = document.getElementById('loginView');
+const doneView = document.getElementById('doneView');
+const btnReturn = document.getElementById('btnReturn');
+const btnOtherAccount = document.getElementById('btnOtherAccount');
+const userInfo = document.getElementById('userInfo');
+const statusEl = document.getElementById('status');
+
+function setStatus(msg, isErr = false) {
+  statusEl.textContent = msg;
+  statusEl.classList.toggle('err', !!isErr);
+}
+
+function finishWithResult(res) {
+  const cred = GoogleAuthProvider.credentialFromResult(res);
+  const idToken = cred?.idToken || res?._tokenResponse?.oauthIdToken || '';
+  const accessToken = cred?.accessToken || res?._tokenResponse?.oauthAccessToken || '';
+
+  if (!idToken && !accessToken) {
+    setStatus('⚠️ لم نحصل على رمز التحقق من جوجل — اضغط الزر للمحاولة مرة أخرى.', true);
+    btnContinue.disabled = false;
+    return;
+  }
+
+  const deepLink = 'neonstorm://auth#' + new URLSearchParams({
+    id_token: idToken,
+    access_token: accessToken,
+  }).toString();
+
+  const name = res?.user?.displayName || res?.user?.email || 'حساب جوجل';
+  const email = res?.user?.email ? ` (${res.user.email})` : '';
+  userInfo.textContent = `✅ تم تسجيل الدخول: ${name}${email}`;
+  btnReturn.href = deepLink;
+  loginView.classList.add('hidden');
+  doneView.classList.remove('hidden');
+  setStatus('جاري تحويلك تلقائياً إلى اللعبة... إذا لم تفتح اضغط الزر الأخضر أعلاه.');
+
+  // Immediate deep link redirect into Android app
+  try {
+    window.location.href = deepLink;
+  } catch {}
+}
+
+async function startGoogleLogin() {
+  btnContinue.disabled = true;
+  setStatus('⏳ جاري فتح نافذة تسجيل الدخول بحساب جوجل...');
+  const provider = new GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: 'select_account' });
+  try {
+    const res = await signInWithPopup(auth, provider);
+    finishWithResult(res);
+  } catch (err) {
+    const code = err?.code || '';
+    if (code === 'auth/popup-blocked' || code === 'auth/operation-not-supported-in-this-environment') {
+      setStatus('⏳ جاري التحويل إلى صفحة جوجل...');
+      try {
+        await signInWithRedirect(auth, provider);
+      } catch (e2) {
+        btnContinue.disabled = false;
+        setStatus('⚠️ تعذر فتح جوجل: ' + (e2?.code || 'حاول مجدداً'), true);
+      }
+    } else if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') {
+      btnContinue.disabled = false;
+      setStatus('تم إلغاء النافذة — اضغط «المتابعة بحساب جوجل» للمحاولة مرة أخرى.');
+    } else {
+      btnContinue.disabled = false;
+      setStatus('⚠️ تعذر تسجيل الدخول (' + (code || 'تحقق من الإنترنت') + ')', true);
+    }
+  }
+}
+
+btnContinue.addEventListener('click', startGoogleLogin);
+btnOtherAccount.addEventListener('click', () => {
+  doneView.classList.add('hidden');
+  loginView.classList.remove('hidden');
+  btnContinue.disabled = false;
+  startGoogleLogin();
+});
+
+// Handle automatic return from signInWithRedirect on page load
+(async () => {
+  try {
+    const res = await getRedirectResult(auth);
+    if (res && res.user) {
+      finishWithResult(res);
+      return;
+    }
+  } catch (err) {
+    console.warn('Redirect result error:', err);
+    setStatus('⚠️ حدث خطأ أثناء التحويل — اضغط الزر للمحاولة مجدداً.', true);
+    return;
+  }
+  setStatus('اضغط الزر أعلاه للمتابعة بحساب جوجل.');
+})();
+</script>
+</body>
+</html>
