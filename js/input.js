@@ -57,7 +57,7 @@ export class Input {
       const lim = 70; dx = Math.max(-lim, Math.min(lim, dx)); dy = Math.max(-lim, Math.min(lim, dy));
       if (Math.abs(dx) < 0.35) dx = 0; if (Math.abs(dy) < 0.35) dy = 0;
       const sp = Math.hypot(dx, dy) / dtm; const gain = 0.7 + 0.55 * Math.min(1, sp / 1.6);
-      const s = 0.0038 * this.S.sensT * gain; this.lookX += dx * s; this.lookY += dy * s * 0.85; };
+      const s = 0.0057 * this.S.sensT * gain; this.lookX += dx * s; this.lookY += dy * s * 0.85; };
     const lookEnd = el => e => { const l = this.looks.get(e.pointerId); if (!l) return; this.looks.delete(e.pointerId); if (l.sc) this.scopeHold = Math.max(0, this.scopeHold - 1); if (l.fire) { this.touchFire = Math.max(0, this.touchFire - 1); el.classList.remove('down'); } };
     for (const [el, fire] of [[E.look, false], [E.fire, true], [E.fire2, true], [E.fireS, true]]) { el.addEventListener('pointerdown', lookStart(el, fire)); el.addEventListener('pointermove', lookMove); el.addEventListener('pointerup', lookEnd(el)); el.addEventListener('pointercancel', lookEnd(el)); el.addEventListener('lostpointercapture', lookEnd(el)); }
     const btn = (id, flag) => { const b = $(id); b.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); this.flags[flag] = true; b.classList.add('down'); }); const up = () => b.classList.remove('down'); b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up); b.addEventListener('pointerleave', up); };
