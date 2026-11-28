@@ -63,7 +63,56 @@ export function buildGun(id, forTP = false) {
   }
   g.add(muzzle);
   g.traverse(o => { if (o.isMesh) { o.castShadow = false; o.receiveShadow = false; } });
-  return { group: g, muzzle };
+  const skinMats = {
+    dark, mid, light, accent,
+    orig: {
+      dark: dark.color.getHex(),
+      mid: mid.color.getHex(),
+      light: light.color.getHex(),
+      accent: accent.color.getHex(),
+    },
+  };
+  return { group: g, muzzle, skinMats };
+}
+
+export function applyWeaponSkin(gunObj, skinDef) {
+  const sm = gunObj && gunObj.skinMats;
+  if (!sm) return;
+  if (!skinDef || skinDef.id === 'default' || !skinDef.color) {
+    sm.dark.color.setHex(sm.orig.dark);
+    sm.dark.emissive.setHex(0x000000);
+    sm.dark.emissiveIntensity = 0;
+    sm.dark.metalness = 0.55; sm.dark.roughness = 0.45;
+    sm.mid.color.setHex(sm.orig.mid);
+    sm.mid.emissive.setHex(0x000000);
+    sm.mid.emissiveIntensity = 0;
+    sm.mid.metalness = 0.55; sm.mid.roughness = 0.45;
+    sm.light.color.setHex(sm.orig.light);
+    sm.light.emissive.setHex(0x000000);
+    sm.light.emissiveIntensity = 0;
+    sm.light.metalness = 0.3; sm.light.roughness = 0.45;
+    sm.accent.color.setHex(sm.orig.accent);
+  } else {
+    sm.mid.color.set(skinDef.color);
+    sm.mid.emissive.set(skinDef.emissive || '#000000');
+    sm.mid.emissiveIntensity = 0.45;
+    sm.mid.metalness = skinDef.metalness ?? 0.75;
+    sm.mid.roughness = skinDef.roughness ?? 0.28;
+
+    sm.dark.color.set(skinDef.dark || skinDef.color);
+    sm.dark.emissive.set(skinDef.emissive || '#000000');
+    sm.dark.emissiveIntensity = 0.22;
+    sm.dark.metalness = skinDef.metalness ?? 0.75;
+    sm.dark.roughness = Math.min(0.6, (skinDef.roughness ?? 0.28) + 0.12);
+
+    sm.light.color.set(skinDef.light || skinDef.color);
+    sm.light.emissive.set(skinDef.emissive || '#000000');
+    sm.light.emissiveIntensity = 0.35;
+    sm.light.metalness = skinDef.metalness ?? 0.75;
+    sm.light.roughness = Math.max(0.15, (skinDef.roughness ?? 0.28) - 0.05);
+
+    sm.accent.color.set(skinDef.accent || skinDef.color);
+  }
 }
 
 export class Viewmodel {
@@ -83,6 +132,7 @@ export class Viewmodel {
     this.setWeapon(0, true);
   }
   setWeapon(i, instant) { this.guns.forEach((g, k) => { g.group.visible = k === i; }); this.cur = i; if (!instant) this.swapT = 0.35; }
+  applySkin(skinDef) { for (const g of this.guns) applyWeaponSkin(g, skinDef); }
   fire(w) { this.kick = Math.min(1, this.kick + (w.kick || 0.06) * 4); this.kickRot = Math.min(1, this.kickRot + (w.kick || 0.06) * 3); this.flashT = 0.05; this.flash.material.color.set(w.color); this.flash.material.rotation = Math.random() * 6; }
   update(dt, st) {
     // st: {moving, speed01, lookDX, lookDY, reloading(0..1 or -1), sprint, onGround, aspect}
