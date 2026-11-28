@@ -91,47 +91,212 @@ export function mergeGeos(list) {
 }
 
 
-// ===== الجزر: ثيم لكل جزيرة (ألوان + ديكور) =====
+// ===== الجزر: 20 جزيرة بثيم وقصة خاصة لكل جزيرة =====
+function hashStr(s) { let h = 2166136261 >>> 0; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h; }
 export const THEMES = [
-  { id: 'neon', name: 'جزيرة النيون', emoji: '⚡', ui: '#38f3ff', ui2: '#ff3d81',
+  { id: 'neon', name: 'جزيرة النيون', emoji: '⚡', skin: 1, ui: '#38f3ff', ui2: '#ff3d81',
+    storyShort: 'استيقظ الذكاء المتمرد «أوميغا» وسيطر على أبراج النيون… اكسر الحصار!',
+    story: 'بدأت العاصفة حين استيقظ الذكاء المتمرد «أوميغا» وسيطر على أبراج مدينة النيون. أنت آخر مقاتل صامد، ومهمتك كسر الحصار وفتح الطريق نحو بقية الجزر.',
     fog: '#4a1d5c', fogK: 1, outer: '#120f2c', grid: '#38c8ff', gridI: 0.55, ground: null, wall: null, block: '#ffffff', neon: ['#ff3d81', '#38f3ff', '#ffd23d'], portal: '#ff3d81', pad: '#2a6cff',
     hemi: ['#9d8cff', '#40284a', 1.35], sun: ['#ffc2a0', 2.3], fill: ['#38c8ff', 0.55], exp: 1.05,
     sky: { top: [0.03, 0.02, 0.12], mid: [0.32, 0.06, 0.42], hor: [1.0, 0.36, 0.42], low: [0.07, 0.03, 0.16], sunA: [1.0, 0.25, 0.5], sunB: [1.0, 0.86, 0.3], stars: 1 },
     mt: ['#2b0f48', '#ff3d81'], city: true, props: null },
-  { id: 'ice', name: 'جزيرة الجليد', emoji: '🧊', ui: '#9fe8ff', ui2: '#ffffff',
+
+  { id: 'ice', name: 'جزيرة الجليد', emoji: '🧊', skin: 2, ui: '#9fe8ff', ui2: '#ffffff',
+    storyShort: 'محطة تبريد عملاقة تغذّي خوادم «أوميغا» تحت العواصف الثلجية.',
+    story: 'تحت العواصف الثلجية دفن «أوميغا» محطة تبريد عملاقة تغذّي خوادمه بالطاقة. اخترق الحصون الجليدية وحطّم قلب التبريد قبل أن يتجمد الأرخبيل بالكامل.',
     fog: '#bfe3f5', fogK: 0.85, outer: '#dff4ff', grid: '#7fdcff', gridI: 0.35,
     ground: { base: '#c9e6f5', speck: [210, 235, 250], line: 'rgba(90,150,190,.55)', crack: 'rgba(120,180,220,.6)' },
     wall: { base: '#8fb8d8', band: '#6f9cc2', hi: 'rgba(255,255,255,.22)' }, block: '#d8f1ff', neon: ['#7fdcff', '#ffffff', '#b6a8ff'], portal: '#5ab8ff', pad: '#3fa9ff',
     hemi: ['#e6f6ff', '#7aa6c8', 1.7], sun: ['#ffffff', 2.4], fill: ['#9fe8ff', 0.7], exp: 0.95,
     sky: { top: [0.25, 0.5, 0.82], mid: [0.55, 0.78, 0.95], hor: [0.92, 0.97, 1.0], low: [0.75, 0.86, 0.95], sunA: [1.0, 1.0, 1.0], sunB: [0.85, 0.95, 1.0], stars: 0 },
     mt: ['#9fc4dd', '#ffffff'], city: false, props: 'ice' },
-  { id: 'lava', name: 'جزيرة البركان', emoji: '🌋', ui: '#ff6a00', ui2: '#ffd23d',
+
+  { id: 'lava', name: 'جزيرة البركان', emoji: '🌋', skin: 3, ui: '#ff6a00', ui2: '#ffd23d',
+    storyShort: 'في فوهة البركان تُصهر الدروع السوداء لجيش الآلات المدرّعة.',
+    story: 'في فوهة البركان المشتعل تُصهر سبائك الدروع السوداء لجيش الآلات. ادخل بين أنهار الحمم وأوقف أفران السلاح قبل إطلاق الفيلق المدرّع.',
     fog: '#3a120a', fogK: 0.8, outer: '#1a0805', grid: '#ff5a1a', gridI: 0.85,
     ground: { base: '#2a1d1a', speck: [60, 40, 34], line: 'rgba(10,4,2,.9)', crack: 'rgba(255,110,20,.85)', glowCrack: true },
     wall: { base: '#3a2a26', band: '#241816', hi: 'rgba(255,120,40,.12)' }, block: '#a07a6a', neon: ['#ff4a1a', '#ffb03d', '#ffe14d'], portal: '#ff5a1a', pad: '#ff3a00',
     hemi: ['#ff9a6a', '#3a0f08', 1.25], sun: ['#ffb070', 2.1], fill: ['#ff4a1a', 0.8], exp: 1.05,
     sky: { top: [0.05, 0.01, 0.01], mid: [0.3, 0.05, 0.02], hor: [1.0, 0.35, 0.08], low: [0.12, 0.03, 0.02], sunA: [1.0, 0.2, 0.05], sunB: [1.0, 0.7, 0.2], stars: 0.4 },
     mt: ['#1a0a08', '#ff4a1a'], city: false, props: 'lava' },
-  { id: 'forest', name: 'جزيرة الغابة', emoji: '🌴', ui: '#5dff8f', ui2: '#d6ff3d',
+
+  { id: 'forest', name: 'جزيرة الغابة', emoji: '🌴', skin: 4, ui: '#5dff8f', ui2: '#d6ff3d',
+    storyShort: 'مختبر سري ابتلعته الأدغال وحوّلت نباتاته إلى فخاخ مضيئة.',
+    story: 'ابتلعت الغابة الاستوائية مختبراً سرياً تحوّلت فيه نباتات الجزيرة إلى فخاخ مضيئة. طهّر الأدغال من المسيّرات المتخفية واستعد خريطة الجزر المفقودة.',
     fog: '#2f5a3a', fogK: 0.8, outer: '#163a1c', grid: '#7dff9a', gridI: 0.3,
     ground: { base: '#3f7a35', speck: [70, 130, 55], line: 'rgba(20,50,18,.5)', crack: null, grass: true },
     wall: { base: '#6b4a2e', band: '#4e3420', hi: 'rgba(255,230,160,.10)' }, block: '#c9b48a', neon: ['#d6ff3d', '#7dff9a', '#ffe14d'], portal: '#5dff8f', pad: '#2fd36b',
     hemi: ['#d8ffd0', '#2a4a1a', 1.55], sun: ['#fff1c0', 2.5], fill: ['#9dffb0', 0.5], exp: 1.0,
     sky: { top: [0.12, 0.35, 0.65], mid: [0.35, 0.6, 0.85], hor: [0.85, 0.95, 0.75], low: [0.2, 0.35, 0.2], sunA: [1.0, 0.95, 0.6], sunB: [1.0, 1.0, 0.85], stars: 0 },
     mt: ['#1f4a24', '#5fae4a'], city: false, props: 'forest' },
-  { id: 'space', name: 'جزيرة الفضاء', emoji: '🪐', ui: '#b46bff', ui2: '#3dd6ff',
+
+  { id: 'desert', name: 'الصحراء الذهبية', emoji: '🏜️', skin: 3, ui: '#ffb84d', ui2: '#ff6e30',
+    storyShort: 'أهرامات شمسية تسرق ضوء السماء لشحن مدافع العدو.',
+    story: 'وسط الكثبان الحارقة تقف أهرامات شمسية تسرق ضوء السماء لشحن مدافع العدو. اجتز العواصف الرملية ودمّر المرايا العملاقة قبل اكتمال الشحن.',
+    fog: '#c98e4b', fogK: 0.85, outer: '#99642e', grid: '#ffd24d', gridI: 0.4,
+    ground: { base: '#d9a95c', speck: [195, 145, 70], line: 'rgba(110,72,28,.45)', crack: 'rgba(130,85,35,.45)' },
+    wall: { base: '#b58042', band: '#855828', hi: 'rgba(255,235,175,.18)' }, block: '#ecd09b', neon: ['#ffd24d', '#ff7b29', '#fff1b8'], portal: '#ff9a2e', pad: '#ffb84d',
+    hemi: ['#ffe8b8', '#7a5224', 1.65], sun: ['#fff0c2', 2.6], fill: ['#ffbe66', 0.6], exp: 0.98,
+    sky: { top: [0.18, 0.38, 0.72], mid: [0.68, 0.62, 0.55], hor: [1.0, 0.82, 0.48], low: [0.75, 0.54, 0.28], sunA: [1.0, 0.85, 0.4], sunB: [1.0, 0.98, 0.78], stars: 0 },
+    mt: ['#8a572a', '#e8aa54'], city: false, props: 'desert' },
+
+  { id: 'cyber', name: 'الميناء الرقمي', emoji: '⚓', skin: 1, ui: '#2ee6ff', ui2: '#2d7dff',
+    storyShort: 'ميناء عائم تنطلق منه سفن الذخيرة والروبوتات نحو كل الجزر.',
+    story: 'من هذا الميناء العائم تنطلق سفن الإمداد بالذخيرة والروبوتات نحو كل الجزر. سيطر على الأرصفة المضيئة واقطع خط الإمداد الرئيسي للعدو.',
+    fog: '#10243d', fogK: 0.95, outer: '#071426', grid: '#2ee6ff', gridI: 0.7,
+    ground: { base: '#1a2d47', speck: [45, 80, 120], line: 'rgba(10,20,38,.85)', crack: null, dots: true },
+    wall: { base: '#253c5c', band: '#16263d', hi: 'rgba(46,230,255,.16)' }, block: '#7fb5d9', neon: ['#2ee6ff', '#2d7dff', '#7dffea'], portal: '#2ee6ff', pad: '#1e88ff',
+    hemi: ['#7fd8ff', '#10203a', 1.4], sun: ['#b8e8ff', 2.2], fill: ['#2ee6ff', 0.75], exp: 1.05,
+    sky: { top: [0.02, 0.06, 0.16], mid: [0.06, 0.2, 0.38], hor: [0.18, 0.62, 0.82], low: [0.04, 0.12, 0.24], sunA: [0.2, 0.85, 1.0], sunB: [0.8, 0.98, 1.0], stars: 1.1 },
+    mt: ['#0d2038', '#2ee6ff'], city: true, props: 'cyber' },
+
+  { id: 'toxic', name: 'المستنقع السام', emoji: '☢️', skin: 4, ui: '#a6ff2e', ui2: '#38ff9c',
+    storyShort: 'أبخرة مشعّة من خزانات مكسورة تمنح الآلات قوة جنونية.',
+    story: 'تتسرب أبخرة خضراء مشعّة من خزانات مكسورة تمنح الآلات قوة جنونية. شق طريقك بحذر عبر البرك السامة وأغلق صمامات التسريب.',
+    fog: '#1a3319', fogK: 0.85, outer: '#0c1c0c', grid: '#9eff2e', gridI: 0.75,
+    ground: { base: '#23331e', speck: [55, 85, 42], line: 'rgba(10,20,10,.88)', crack: 'rgba(166,255,46,.75)', glowCrack: true },
+    wall: { base: '#2f402a', band: '#1d291a', hi: 'rgba(166,255,46,.14)' }, block: '#80a372', neon: ['#a6ff2e', '#38ff9c', '#ffe64d'], portal: '#9eff2e', pad: '#5ad12e',
+    hemi: ['#b8ff8a', '#162b12', 1.35], sun: ['#d4ff9c', 2.1], fill: ['#7dff2e', 0.8], exp: 1.05,
+    sky: { top: [0.03, 0.08, 0.03], mid: [0.1, 0.24, 0.09], hor: [0.42, 0.72, 0.18], low: [0.08, 0.16, 0.06], sunA: [0.65, 1.0, 0.2], sunB: [0.9, 1.0, 0.6], stars: 0.6 },
+    mt: ['#142612', '#8dff2e'], city: false, props: 'toxic' },
+
+  { id: 'crystal', name: 'جزيرة الكريستال', emoji: '💎', skin: 2, ui: '#60efff', ui2: '#c06bff',
+    storyShort: 'كهوف بلور أزرق تُستخرج شظاياها لصنع أشعة الليزر الخارقة.',
+    story: 'تضيء كهوف البلور الأزرق كأنها نجوم ساقطة، وتُستخدم شظاياها في صنع أشعة الليزر الخارقة. اسبق العدو إلى قلب الكريستال وحطّم آلات الحفر.',
+    fog: '#1e1b4b', fogK: 0.95, outer: '#110f30', grid: '#60efff', gridI: 0.75,
+    ground: { base: '#252659', speck: [70, 90, 155], line: 'rgba(96,239,255,.35)', crack: 'rgba(160,120,255,.65)', dots: true },
+    wall: { base: '#343678', band: '#212254', hi: 'rgba(120,240,255,.2)' }, block: '#a5c8ff', neon: ['#60efff', '#c06bff', '#ffffff'], portal: '#60efff', pad: '#7c5cff',
+    hemi: ['#a8d8ff', '#221c54', 1.5], sun: ['#dff6ff', 2.2], fill: ['#c06bff', 0.75], exp: 1.05,
+    sky: { top: [0.04, 0.04, 0.18], mid: [0.16, 0.14, 0.45], hor: [0.38, 0.72, 0.95], low: [0.1, 0.08, 0.28], sunA: [0.45, 0.92, 1.0], sunB: [0.85, 0.72, 1.0], stars: 1.4 },
+    mt: ['#1d1c4d', '#60efff'], city: false, props: 'crystal' },
+
+  { id: 'ruins', name: 'الأطلال القديمة', emoji: '🏛️', skin: 4, ui: '#e6c27a', ui2: '#6ef2d6',
+    storyShort: 'موطن الحضارة الأولى التي ابتكرت طاقة النيون قبل سقوطها.',
+    story: 'هنا عاشت الحضارة الأولى التي ابتكرت طاقة النيون قبل قرون من سقوطها. استعد الشيفرة المنقوشة بين الأعمدة المنهارة قبل أن يفكها «أوميغا».',
+    fog: '#3d362c', fogK: 0.9, outer: '#241f18', grid: '#e6c27a', gridI: 0.4,
+    ground: { base: '#6e6251', speck: [120, 108, 88], line: 'rgba(42,35,26,.65)', crack: 'rgba(35,30,22,.6)' },
+    wall: { base: '#877863', band: '#5c5141', hi: 'rgba(245,220,170,.16)' }, block: '#c4b49a', neon: ['#6ef2d6', '#ffd26a', '#fff0c2'], portal: '#6ef2d6', pad: '#d4a94e',
+    hemi: ['#f2dfc0', '#3d3326', 1.5], sun: ['#ffebb8', 2.3], fill: ['#6ef2d6', 0.55], exp: 1.0,
+    sky: { top: [0.12, 0.18, 0.28], mid: [0.38, 0.36, 0.32], hor: [0.82, 0.68, 0.45], low: [0.28, 0.24, 0.18], sunA: [0.95, 0.8, 0.48], sunB: [1.0, 0.95, 0.78], stars: 0.5 },
+    mt: ['#3b3328', '#c7a466'], city: false, props: 'ruins' },
+
+  { id: 'storm', name: 'العاصفة الرعدية', emoji: '⛈️', skin: 1, ui: '#44d9ff', ui2: '#ffe64d',
+    storyShort: 'أبراج معدنية تلتقط البرق لتشغيل درع العدو الأكبر.',
+    story: 'سماء لا تتوقف فيها الصواعق وأبراج معدنية تلتقط البرق لتشغيل درع العدو الأكبر. اصمد تحت الرعد وفجّر مولدات الصواعق لتعبر نحو النصف الثاني من الأرخبيل.',
+    fog: '#192238', fogK: 0.82, outer: '#0d1324', grid: '#44d9ff', gridI: 0.8,
+    ground: { base: '#212b42', speck: [50, 65, 95], line: 'rgba(8,12,24,.9)', crack: 'rgba(68,217,255,.75)', glowCrack: true },
+    wall: { base: '#2c3854', band: '#1a2236', hi: 'rgba(255,230,77,.15)' }, block: '#7d92b8', neon: ['#44d9ff', '#ffe64d', '#ffffff'], portal: '#ffe64d', pad: '#44d9ff',
+    hemi: ['#94c8ff', '#141c30', 1.3], sun: ['#d6ecff', 2.1], fill: ['#ffe64d', 0.75], exp: 1.05,
+    sky: { top: [0.03, 0.05, 0.12], mid: [0.1, 0.16, 0.28], hor: [0.28, 0.48, 0.68], low: [0.08, 0.12, 0.2], sunA: [0.6, 0.88, 1.0], sunB: [1.0, 0.96, 0.6], stars: 0.3 },
+    mt: ['#111829', '#44d9ff'], city: false, props: 'cyber' },
+
+  { id: 'sakura', name: 'الكرز المضيء', emoji: '🌸', skin: 4, ui: '#ff7ad9', ui2: '#ffd6f0',
+    storyShort: 'حدائق بتلات متوهجة تخفي أسرع فرقة نينجا آلية.',
+    story: 'حدائق هادئة تتساقط فيها بتلات وردية متوهجة، لكنها تخفي أسرع فرقة نينجا آلية. لا تنخدع بسكون المكان، فكل ظل هنا يخفي كميناً خاطفاً.',
+    fog: '#4a2146', fogK: 0.9, outer: '#291029', grid: '#ff7ad9', gridI: 0.55,
+    ground: { base: '#4a2b4a', speck: [110, 62, 105], line: 'rgba(35,14,35,.65)', crack: null, grass: true },
+    wall: { base: '#6e3d68', band: '#4a2547', hi: 'rgba(255,190,235,.2)' }, block: '#f2b8e4', neon: ['#ff7ad9', '#ffd6f0', '#ffe169'], portal: '#ff5cc8', pad: '#ff7ad9',
+    hemi: ['#ffcce8', '#3d193d', 1.55], sun: ['#ffe3f5', 2.3], fill: ['#ff7ad9', 0.65], exp: 1.02,
+    sky: { top: [0.14, 0.05, 0.22], mid: [0.46, 0.16, 0.42], hor: [1.0, 0.62, 0.82], low: [0.24, 0.09, 0.24], sunA: [1.0, 0.55, 0.82], sunB: [1.0, 0.9, 0.95], stars: 0.8 },
+    mt: ['#361538', '#ff7ad9'], city: false, props: 'forest' },
+
+  { id: 'abyss', name: 'الأعماق الزرقاء', emoji: '🌊', skin: 2, ui: '#00d4ff', ui2: '#00ffaa',
+    storyShort: 'قبة زجاجية في قاع المحيط تحرس كابلات شبكة العدو.',
+    story: 'قبة زجاجية هائلة في قاع المحيط تحرس كابلات الاتصال التي تربط قواعد العدو. اقتحم المحطة الغارقة واقطع الشبكة قبل استدعاء التعزيزات.',
+    fog: '#072a42', fogK: 0.78, outer: '#031726', grid: '#00d4ff', gridI: 0.75,
+    ground: { base: '#0d3b59', speck: [28, 92, 130], line: 'rgba(0,212,255,.35)', crack: 'rgba(0,255,170,.45)', dots: true },
+    wall: { base: '#124e73', band: '#09304a', hi: 'rgba(0,235,255,.18)' }, block: '#69c9e8', neon: ['#00d4ff', '#00ffaa', '#7af2ff'], portal: '#00ffaa', pad: '#00b4ff',
+    hemi: ['#5ce8ff', '#041c2e', 1.4], sun: ['#99f2ff', 2.0], fill: ['#00ffaa', 0.75], exp: 1.05,
+    sky: { top: [0.01, 0.07, 0.15], mid: [0.02, 0.22, 0.38], hor: [0.06, 0.48, 0.62], low: [0.01, 0.12, 0.22], sunA: [0.0, 0.85, 1.0], sunB: [0.4, 1.0, 0.85], stars: 0.4 },
+    mt: ['#052136', '#00d4ff'], city: false, props: 'crystal' },
+
+  { id: 'sandstorm', name: 'الوادي القرمزي', emoji: '🪨', skin: 3, ui: '#ff5e3a', ui2: '#ffaa44',
+    storyShort: 'أخاديد صخرية حمراء تخبئ مصفاة وقود فضائي محصّنة.',
+    story: 'أخاديد صخرية حمراء تحاصر مصفاة وقود فضائي تحرسها مدرعات ثقيلة. تقدم عبر الممرات الضيقة وانسف خزانات الوقود قبل إقلاع الأسطول.',
+    fog: '#5e2318', fogK: 0.82, outer: '#38120c', grid: '#ff6e40', gridI: 0.6,
+    ground: { base: '#7a3324', speck: [140, 62, 42], line: 'rgba(42,14,10,.7)', crack: 'rgba(255,120,60,.45)' },
+    wall: { base: '#8c3e2b', band: '#5c2418', hi: 'rgba(255,175,120,.14)' }, block: '#cf7d63', neon: ['#ff5e3a', '#ffaa44', '#ffe180'], portal: '#ff5e3a', pad: '#ff7733',
+    hemi: ['#ffaa85', '#3d140c', 1.45], sun: ['#ffd0a8', 2.3], fill: ['#ff6e40', 0.65], exp: 1.02,
+    sky: { top: [0.16, 0.05, 0.05], mid: [0.48, 0.16, 0.12], hor: [0.95, 0.44, 0.24], low: [0.3, 0.1, 0.08], sunA: [1.0, 0.42, 0.2], sunB: [1.0, 0.82, 0.45], stars: 0.3 },
+    mt: ['#4a1911', '#ff6e40'], city: false, props: 'desert' },
+
+  { id: 'mirror', name: 'السراب البنفسجي', emoji: '🔮', skin: 5, ui: '#d066ff', ui2: '#5ef2ff',
+    storyShort: 'أرض مرايا ضوئية تخدع الرادار وتنسخ صور الأعداء.',
+    story: 'أرض تغمرها المرايا الضوئية التي تخدع الرادار وتنسخ صور الأعداء في كل اتجاه. اعتمد على بصيرتك ودقة تصويبك لكشف العدو الحقيقي وإسقاطه.',
+    fog: '#29104a', fogK: 0.95, outer: '#140629', grid: '#d066ff', gridI: 0.85,
+    ground: { base: '#2b164d', speck: [80, 44, 130], line: 'rgba(208,102,255,.45)', crack: 'rgba(94,242,255,.55)', dots: true },
+    wall: { base: '#3d226b', band: '#241242', hi: 'rgba(220,140,255,.22)' }, block: '#c8a6ff', neon: ['#d066ff', '#5ef2ff', '#ff5cc8'], portal: '#d066ff', pad: '#9d4edd',
+    hemi: ['#d9a6ff', '#1e0b3d', 1.4], sun: ['#f0d6ff', 2.1], fill: ['#5ef2ff', 0.8], exp: 1.08,
+    sky: { top: [0.05, 0.01, 0.14], mid: [0.22, 0.06, 0.42], hor: [0.65, 0.25, 0.88], low: [0.1, 0.03, 0.22], sunA: [0.85, 0.35, 1.0], sunB: [0.45, 0.95, 1.0], stars: 1.6 },
+    mt: ['#1e0c3b', '#d066ff'], city: false, props: 'crystal' },
+
+  { id: 'foundry', name: 'المصنع الحديدي', emoji: '⚙️', skin: 3, ui: '#ff9f1c', ui2: '#ff4d4d',
+    storyShort: 'قلب الصناعة الحربية حيث تُنتج آلاف الآلات بلا توقف.',
+    story: 'قلب الصناعة الحربية حيث تُنتج آلاف الوحدات القتالية بلا توقف ليلاً ونهاراً. اخترق خطوط الإنتاج وأغلق المصنع للأبد.',
+    fog: '#2c1f1a', fogK: 0.85, outer: '#17100e', grid: '#ff9f1c', gridI: 0.7,
+    ground: { base: '#302927', speck: [70, 62, 58], line: 'rgba(12,10,9,.9)', crack: 'rgba(255,159,28,.65)', glowCrack: true },
+    wall: { base: '#453b38', band: '#292220', hi: 'rgba(255,175,60,.16)' }, block: '#9e8e84', neon: ['#ff9f1c', '#ff4d4d', '#ffd166'], portal: '#ff9f1c', pad: '#ff6d00',
+    hemi: ['#ffbe73', '#241812', 1.3], sun: ['#ffd29d', 2.2], fill: ['#ff7b29', 0.75], exp: 1.04,
+    sky: { top: [0.06, 0.04, 0.04], mid: [0.22, 0.12, 0.08], hor: [0.78, 0.38, 0.14], low: [0.14, 0.08, 0.06], sunA: [1.0, 0.55, 0.12], sunB: [1.0, 0.85, 0.45], stars: 0.3 },
+    mt: ['#241a16', '#ff9f1c'], city: true, props: 'lava' },
+
+  { id: 'shadow', name: 'الظلال المنسية', emoji: '🌑', skin: 5, ui: '#ff477e', ui2: '#7b5cff',
+    storyShort: 'جزيرة في ليل أبدي لا تضيئها سوى عيون الآلات في العتمة.',
+    story: 'جزيرة غارقة في ليل أبدي لا تضيئها سوى عيون الآلات المتوهجة في العتمة. واجه مخاوفك وسط الضباب الأسود وانتزع مفتاح البوابة الكونية.',
+    fog: '#0f0a1a', fogK: 0.78, outer: '#06040c', grid: '#ff477e', gridI: 0.85,
+    ground: { base: '#141021', speck: [32, 24, 48], line: 'rgba(255,71,126,.32)', crack: 'rgba(123,92,255,.55)', dots: true },
+    wall: { base: '#1e1730', band: '#100c1c', hi: 'rgba(255,71,126,.16)' }, block: '#695c8a', neon: ['#ff477e', '#7b5cff', '#ff9ebb'], portal: '#ff477e', pad: '#ff2a6d',
+    hemi: ['#8866cc', '#0c0817', 1.15], sun: ['#c4b0ff', 1.85], fill: ['#ff477e', 0.85], exp: 1.12,
+    sky: { top: [0.01, 0.0, 0.03], mid: [0.06, 0.02, 0.12], hor: [0.32, 0.06, 0.22], low: [0.02, 0.01, 0.05], sunA: [1.0, 0.18, 0.42], sunB: [0.6, 0.35, 1.0], stars: 2.0 },
+    mt: ['#0b0714', '#ff477e'], city: false, props: 'ruins' },
+
+  { id: 'sky', name: 'الغيوم المعلقة', emoji: '☁️', skin: 2, ui: '#7de8ff', ui2: '#ffe680',
+    storyShort: 'منصات تطفو فوق السحاب تحرس برج الإطلاق نحو المدار.',
+    story: 'منصات بيضاء تطفو فوق السحاب تحرس برج الإطلاق الصاروخي نحو المدار. ارتقِ بين السحب واستولِ على منصة الصعود إلى الفضاء.',
+    fog: '#a8dcfa', fogK: 0.9, outer: '#d6f0ff', grid: '#5cc8ff', gridI: 0.4,
+    ground: { base: '#dcefff', speck: [215, 235, 255], line: 'rgba(100,165,220,.45)', crack: null, dots: true },
+    wall: { base: '#b0d4f0', band: '#89b7de', hi: 'rgba(255,255,255,.3)' }, block: '#eef7ff', neon: ['#5cc8ff', '#ffe680', '#ffffff'], portal: '#38b6ff', pad: '#5cc8ff',
+    hemi: ['#ffffff', '#8ab8e0', 1.75], sun: ['#fffbe6', 2.45], fill: ['#7de8ff', 0.65], exp: 0.94,
+    sky: { top: [0.16, 0.46, 0.88], mid: [0.46, 0.76, 0.98], hor: [0.94, 0.98, 1.0], low: [0.76, 0.9, 1.0], sunA: [1.0, 0.94, 0.68], sunB: [1.0, 1.0, 0.94], stars: 0 },
+    mt: ['#9ec8e8', '#ffffff'], city: false, props: 'ice' },
+
+  { id: 'space', name: 'جزيرة الفضاء', emoji: '🪐', skin: 5, ui: '#b46bff', ui2: '#3dd6ff',
+    storyShort: 'محطة «أوميغا» المدارية تدور وسط النيازك وأقمار التجسس.',
+    story: 'خارج الغلاف الجوي تدور محطة «أوميغا» المدارية وسط النيازك والنجوم الصامتة. قاتل في فراغ الكون ودمّر أقمار التجسس التي تراقب العالم.',
     fog: '#0a0620', fogK: 1.25, outer: '#05030f', grid: '#b46bff', gridI: 0.8,
     ground: { base: '#1a1530', speck: [40, 30, 70], line: 'rgba(160,110,255,.35)', crack: null, dots: true },
     wall: { base: '#241c44', band: '#151030', hi: 'rgba(180,120,255,.14)' }, block: '#b8a8ff', neon: ['#b46bff', '#3dd6ff', '#ff6ad5'], portal: '#b46bff', pad: '#7a3dff',
     hemi: ['#a890ff', '#120a30', 1.3], sun: ['#d8c8ff', 2.0], fill: ['#3dd6ff', 0.7], exp: 1.1,
     sky: { top: [0.0, 0.0, 0.02], mid: [0.04, 0.02, 0.12], hor: [0.3, 0.12, 0.5], low: [0.02, 0.01, 0.05], sunA: [0.5, 0.8, 1.0], sunB: [1.0, 1.0, 1.0], stars: 2.2 },
     mt: ['#0c0820', '#5a2fa0'], city: false, props: 'space' },
+
+  { id: 'quantum', name: 'الثقب الكمي', emoji: '🌀', skin: 5, ui: '#00f5d4', ui2: '#ff3df0',
+    storyShort: 'حافة دوامة زمنية تنحني فيها الجاذبية وتنهار قوانين المكان.',
+    story: 'على حافة دوامة زمنية تنحني فيها الجاذبية وتنهار قوانين المكان. اعبر بوابة الكم وواجه نخبة الحرس قبل أن يعيد العدو كتابة التاريخ.',
+    fog: '#081f26', fogK: 1.15, outer: '#030e12', grid: '#00f5d4', gridI: 0.9,
+    ground: { base: '#0d222b', speck: [24, 72, 84], line: 'rgba(0,245,212,.42)', crack: 'rgba(255,61,240,.65)', glowCrack: true, dots: true },
+    wall: { base: '#122f3b', band: '#0a1c24', hi: 'rgba(0,245,212,.22)' }, block: '#80f5e8', neon: ['#00f5d4', '#ff3df0', '#ffe64d'], portal: '#00f5d4', pad: '#00d9bf',
+    hemi: ['#70fff0', '#0a1c24', 1.35], sun: ['#d4fff9', 2.1], fill: ['#ff3df0', 0.85], exp: 1.1,
+    sky: { top: [0.0, 0.02, 0.04], mid: [0.03, 0.14, 0.2], hor: [0.0, 0.62, 0.58], low: [0.02, 0.06, 0.1], sunA: [0.0, 0.96, 0.83], sunB: [1.0, 0.24, 0.94], stars: 2.4 },
+    mt: ['#07181f', '#00f5d4'], city: false, props: 'space' },
+
+  { id: 'citadel', name: 'قلعة النيون الأخيرة', emoji: '👑', skin: 1, ui: '#ffd166', ui2: '#ff3df0',
+    storyShort: 'القلعة الذهبية العظمى حيث يجلس الإمبراطور ومصدر العاصفة!',
+    story: 'القلعة الذهبية العظمى حيث يجلس الإمبراطور الآلي ومصدر «عاصفة النيون» الأبدية. هذه هي المعركة الفاصلة — أسقط الإمبراطور وحرّر كل الجزر إلى الأبد!',
+    fog: '#2e1038', fogK: 1.1, outer: '#12061c', grid: '#ffd166', gridI: 0.9,
+    ground: { base: '#211430', speck: [68, 42, 88], line: 'rgba(255,209,102,.48)', crack: 'rgba(255,61,240,.65)', glowCrack: true, dots: true },
+    wall: { base: '#331e47', band: '#1f102e', hi: 'rgba(255,209,102,.24)' }, block: '#ffe4a3', neon: ['#ffd166', '#ff3df0', '#38f6ff'], portal: '#ffd166', pad: '#ffbe3d',
+    hemi: ['#ffe299', '#2b1038', 1.45], sun: ['#fff0c2', 2.4], fill: ['#ff3df0', 0.85], exp: 1.08,
+    sky: { top: [0.04, 0.01, 0.1], mid: [0.24, 0.06, 0.34], hor: [1.0, 0.68, 0.28], low: [0.12, 0.04, 0.18], sunA: [1.0, 0.82, 0.32], sunB: [1.0, 0.35, 0.88], stars: 1.8 },
+    mt: ['#240c30', '#ffd166'], city: true, props: 'cyber' },
 ];
 
 const _themeTexCache = {};
 export function themeTextures(th) {
   if (!th.ground) return null; if (_themeTexCache[th.id]) return _themeTexCache[th.id];
-  const R = rnd(11 + th.id.length * 7), G = th.ground, Wc = th.wall;
+  const R = rnd(11 + hashStr(th.id)), G = th.ground, Wc = th.wall;
   const ground = canvasTex(512, 512, (g, w, h) => {
     g.fillStyle = G.base; g.fillRect(0, 0, w, h);
     const [sr, sg, sb] = G.speck;
@@ -425,12 +590,12 @@ export class World {
     return out;
   }
   buildProps(th) {
-    const g = this.themeGroup, R = rnd(99 + th.id.length * 13);
+    const g = this.themeGroup, R = rnd(99 + hashStr(th.id));
     const std = (o) => new THREE.MeshStandardMaterial({ roughness: 0.8, metalness: 0.05, flatShading: true, ...o });
     const solid = (mesh, x, z, w, h, d) => { mesh.castShadow = true; mesh.receiveShadow = true; g.add(mesh); this.themeCols.push(this.addBox(x, 0, z, w, h, d)); };
     const flat = (geo, mat, x, z, rot = 0) => { const m = new THREE.Mesh(geo, mat); m.rotation.x = -Math.PI / 2; m.rotation.z = rot; m.position.set(x, 0.012, z); g.add(m); return m; };
     const ring = (n, r0, r1, f) => { for (let i = 0; i < n; i++) { const a = i / n * Math.PI * 2 + R() * 0.12, r = r0 + R() * (r1 - r0); f(Math.cos(a) * r, Math.sin(a) * r, i); } };
-    const spots = this.propSpots(7, 7 + th.id.length * 31);
+    const spots = this.propSpots(7, 7 + (hashStr(th.id) % 9973));
     if (th.props === 'ice') {
       const iceM = std({ color: '#cdeeff', roughness: 0.12, metalness: 0.15, transparent: true, opacity: 0.88, emissive: new THREE.Color('#2a6a9a'), emissiveIntensity: 0.25 });
       for (const p of spots) { const m = new THREE.Mesh(new THREE.BoxGeometry(p.s, p.h, p.s * 1.15), iceM); m.position.set(p.x, p.h / 2, p.z); solid(m, p.x, p.z, p.s, p.h, p.s * 1.15); }
@@ -466,6 +631,32 @@ export class World {
       pl(-140, 120, -260, 42, '#c87aff', '#ffd23d'); pl(200, 70, 180, 22, '#3dd6ff', null); pl(60, 160, 300, 14, '#ff6ad5', null);
       const starM = new THREE.MeshBasicMaterial({ color: '#d8c8ff', toneMapped: false, transparent: true, opacity: 0.8, polygonOffset: true, polygonOffsetFactor: -1 });
       for (let i = 0; i < 24; i++) flat(new THREE.CircleGeometry(0.12 + R() * 0.12, 6), starM, (R() * 2 - 1) * 36, (R() * 2 - 1) * 36);
+    } else if (th.props === 'desert') {
+      const sandM = std({ color: th.wall ? th.wall.base : '#c48f47', roughness: 0.92 }), goldM = std({ color: th.ui || '#ffd24d', roughness: 0.3, metalness: 0.5, emissive: new THREE.Color(th.ui || '#ff9a2e'), emissiveIntensity: 0.25 });
+      for (const p of spots) { const h = p.h + 1.0; const m = new THREE.Mesh(new THREE.ConeGeometry(p.s * 0.85, h, 4), sandM); m.position.set(p.x, h / 2, p.z); m.rotation.y = Math.PI / 4; solid(m, p.x, p.z, p.s * 1.05, h, p.s * 1.05); }
+      ring(10, 56, 88, (x, z) => { const h = 18 + R() * 24, r = 12 + R() * 10; const py = new THREE.Mesh(new THREE.ConeGeometry(r, h, 4), sandM); py.position.set(x, h / 2 - 0.5, z); py.rotation.y = Math.PI / 4; g.add(py); const cap = new THREE.Mesh(new THREE.ConeGeometry(r * 0.22, h * 0.22, 4), goldM); cap.position.set(x, h * 0.89, z); cap.rotation.y = Math.PI / 4; g.add(cap); });
+      const duneM = std({ color: th.ground ? th.ground.base : '#d9a95c', roughness: 0.95, polygonOffset: true, polygonOffsetFactor: -1 });
+      for (let i = 0; i < 14; i++) flat(new THREE.CircleGeometry(1.5 + R() * 2.5, 9), duneM, (R() * 2 - 1) * 34, (R() * 2 - 1) * 34);
+    } else if (th.props === 'cyber') {
+      const pilM = std({ color: th.wall ? th.wall.base : '#263859', roughness: 0.35, metalness: 0.6 }), glowM = new THREE.MeshBasicMaterial({ color: th.ui || '#38f6ff', toneMapped: false });
+      const glow2 = new THREE.MeshBasicMaterial({ color: th.ui2 || '#ff3df0', toneMapped: false });
+      spots.forEach((p, i) => { const h = p.h + 1.1; const m = new THREE.Mesh(new THREE.BoxGeometry(p.s * 0.85, h, p.s * 0.85), pilM); m.position.set(p.x, h / 2, p.z); solid(m, p.x, p.z, p.s * 0.85, h, p.s * 0.85); const strip = new THREE.Mesh(new THREE.BoxGeometry(p.s * 0.9, 0.16, p.s * 0.9), i % 2 ? glow2 : glowM); strip.position.set(p.x, h - 0.25, p.z); g.add(strip); });
+      ring(16, 50, 82, (x, z, i) => { const h = 14 + R() * 22; const tw = new THREE.Mesh(new THREE.BoxGeometry(2.6, h, 2.6), pilM); tw.position.set(x, h / 2, z); g.add(tw); const rg = new THREE.Mesh(new THREE.TorusGeometry(3.2, 0.16, 6, 18), i % 2 ? glowM : glow2); rg.position.set(x, h + 1.5, z); rg.rotation.x = Math.PI / 2; g.add(rg); });
+    } else if (th.props === 'toxic') {
+      const vatM = std({ color: '#2b3d28', roughness: 0.55, metalness: 0.4 }), gooM = new THREE.MeshBasicMaterial({ color: '#a6ff2e', toneMapped: false });
+      for (const p of spots) { const h = p.h + 0.6; const m = new THREE.Mesh(new THREE.CylinderGeometry(p.s * 0.52, p.s * 0.58, h, 8), vatM); m.position.set(p.x, h / 2, p.z); solid(m, p.x, p.z, p.s, h, p.s); const top = new THREE.Mesh(new THREE.CylinderGeometry(p.s * 0.44, p.s * 0.44, 0.12, 8), gooM); top.position.set(p.x, h + 0.04, p.z); g.add(top); }
+      ring(20, 48, 80, (x, z) => { const h = 8 + R() * 14, r = 2 + R() * 2.5; const st = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.65, r, h, 7), vatM); st.position.set(x, h / 2, z); g.add(st); const gtop = new THREE.Mesh(new THREE.SphereGeometry(r * 0.7, 8, 6), gooM); gtop.position.set(x, h + 0.4, z); g.add(gtop); });
+      const poolM = new THREE.MeshBasicMaterial({ color: '#9eff2e', toneMapped: false, transparent: true, opacity: 0.7, polygonOffset: true, polygonOffsetFactor: -1 });
+      for (let i = 0; i < 14; i++) flat(new THREE.CircleGeometry(1.0 + R() * 1.9, 10), poolM, (R() * 2 - 1) * 34, (R() * 2 - 1) * 34);
+    } else if (th.props === 'crystal') {
+      const c1 = std({ color: th.ui || '#60efff', roughness: 0.12, metalness: 0.25, emissive: new THREE.Color(th.ui || '#60efff'), emissiveIntensity: 0.45, transparent: true, opacity: 0.9 });
+      const c2 = std({ color: th.ui2 || '#c06bff', roughness: 0.15, metalness: 0.25, emissive: new THREE.Color(th.ui2 || '#c06bff'), emissiveIntensity: 0.45, transparent: true, opacity: 0.9 });
+      spots.forEach((p, i) => { const h = p.h + 1.4; const m = new THREE.Mesh(new THREE.ConeGeometry(p.s * 0.55, h, 6), i % 2 ? c2 : c1); m.position.set(p.x, h / 2, p.z); solid(m, p.x, p.z, p.s * 0.85, h, p.s * 0.85); });
+      ring(26, 46, 82, (x, z, i) => { const h = 12 + R() * 24, r = 2.2 + R() * 3.5; const m = new THREE.Mesh(new THREE.OctahedronGeometry(r, 0), i % 2 ? c1 : c2); m.scale.set(1, h / (r * 2), 1); m.position.set(x, h * 0.45, z); m.rotation.y = R() * 3; g.add(m); });
+    } else if (th.props === 'ruins') {
+      const stM = std({ color: th.wall ? th.wall.base : '#877863', roughness: 0.92 }), runM = new THREE.MeshBasicMaterial({ color: th.ui2 || '#6ef2d6', toneMapped: false });
+      for (const p of spots) { const h = p.h + 1.6; const m = new THREE.Mesh(new THREE.CylinderGeometry(p.s * 0.42, p.s * 0.48, h, 8), stM); m.position.set(p.x, h / 2, p.z); solid(m, p.x, p.z, p.s * 0.9, h, p.s * 0.9); const rn = new THREE.Mesh(new THREE.TorusGeometry(p.s * 0.46, 0.06, 5, 10), runM); rn.position.set(p.x, h * 0.72, p.z); rn.rotation.x = Math.PI / 2; g.add(rn); }
+      ring(18, 48, 82, (x, z) => { const h = 12 + R() * 18; const col = new THREE.Mesh(new THREE.BoxGeometry(2.8, h, 2.8), stM); col.position.set(x, h / 2 - 0.5, z); col.rotation.z = (R() - 0.5) * 0.18; g.add(col); });
     }
   }
   rampMesh(x, z, w, d, h, axis, dir, list) {
