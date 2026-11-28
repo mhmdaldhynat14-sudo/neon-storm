@@ -122,6 +122,52 @@ export class FX {
   }
   ring(x, y, z, r0, r1, life, color = '#ff3d81') { const r = this.rings.find(r => r.life <= 0) || this.rings[0]; r.m.position.set(x, y, z); r.r0 = r0; r.r1 = r1; r.life = r.max = life; r.m.material.color.set(color); r.m.visible = true; return r; }
   beam(x, y, z, color = '#ff3d81', h = 6, life = 0.9) { const b = this.beams.find(b => b.life <= 0) || this.beams[0]; b.m.position.set(x, y, z); b.m.material.color.set(color); b.life = b.max = life; b.h = h; b.m.visible = true; }
+  headshotBurst(pos, style = 'default') {
+    if (!pos) return;
+    const x = pos.x, y = Math.max(0.4, pos.y), z = pos.z;
+    if (style === 'plasma') {
+      // Expanding cyan/magenta shockwave rings + neon sparks
+      this.ring(x, y, z, 0.25, 3.6, 0.42, '#38f6ff');
+      this.ring(x, Math.max(0.08, y - 0.5), z, 0.2, 2.8, 0.36, '#ff3df0');
+      this.flash(x, y, z, 2.4, 0.24, '#38f6ff', 2.2);
+      this.light(x, y, z, '#ff3df0', 22, 0.3, 10);
+      for (let i = 0; i < 24 * this.scale; i++) {
+        const a = Math.random() * 6.283, s = 4 + Math.random() * 8, vy = 1.5 + Math.random() * 6;
+        this.spark(x, y, z, Math.cos(a) * s, vy, Math.sin(a) * s, i % 2 ? '#38f6ff' : '#ff3df0', 0.22 + Math.random() * 0.16, 0.45 + Math.random() * 0.35, 6, 1.8);
+      }
+      return;
+    }
+    if (style === 'lightning') {
+      // Bright vertical lightning bolt flash + electric sparks
+      this.beam(x, 0.05, z, '#7ff8ff', 14, 0.45);
+      this.beam(x, 0.05, z, '#ffffff', 12, 0.24);
+      this.ring(x, 0.08, z, 0.2, 3.2, 0.32, '#38d9ff');
+      this.flash(x, y + 0.4, z, 3.0, 0.22, '#e0fbff', 2.4);
+      this.light(x, y + 1.2, z, '#7ff8ff', 32, 0.28, 14);
+      for (let i = 0; i < 26 * this.scale; i++) {
+        const a = Math.random() * 6.283, s = 5 + Math.random() * 9;
+        this.spark(x, y + (Math.random() - 0.3) * 1.4, z, Math.cos(a) * s, 2 + Math.random() * 8, Math.sin(a) * s, i % 3 === 0 ? '#ffffff' : '#38d9ff', 0.18 + Math.random() * 0.16, 0.35 + Math.random() * 0.3, 4, 2.4);
+      }
+      return;
+    }
+    if (style === 'goldburst') {
+      // Golden starburst explosion + extra golden particles & debris
+      this.ring(x, y, z, 0.2, 3.4, 0.45, '#ffd700');
+      this.flash(x, y, z, 2.8, 0.28, '#ffd700', 2.3);
+      this.flash(x, y, z, 1.5, 0.16, '#fff8c8', 1.8);
+      this.light(x, y, z, '#ffd700', 28, 0.35, 12);
+      for (let i = 0; i < 32 * this.scale; i++) {
+        const a = Math.random() * 6.283, s = 3.5 + Math.random() * 9.5;
+        this.spark(x, y, z, Math.cos(a) * s, 2.5 + Math.random() * 8, Math.sin(a) * s, i % 3 === 0 ? '#fff4b0' : '#ffd700', 0.24 + Math.random() * 0.2, 0.55 + Math.random() * 0.45, 9, 1.4);
+      }
+      this.debrisBurst(pos, ['#ffd700', '#ffaa00', '#fff4b0'], 10, 0.16, 6);
+      return;
+    }
+    // default crisp headshot sparkle
+    this.flash(x, y, z, 1.1, 0.15, '#ffd23d', 1.6);
+    this.burst(pos, [0, 1, 0], '#ffd23d', 12, 6, 0.14, 0.35);
+  }
+
   explosion(pos, radius = 4, color = '#ffa040') {
     this.flash(pos.x, pos.y + 0.5, pos.z, radius * 1.6, 0.35, '#ffd890', 2.2);
     this.flash(pos.x, pos.y + 0.6, pos.z, radius * 0.9, 0.18, '#fff', 1.6);
