@@ -125,7 +125,7 @@ function mergeStates(local, cloud, sameAccount) {
 
   const lB = Array.isArray(local.islands?.b) ? local.islands.b.map(Number) : [];
   const cB = Array.isArray(cloud.islands?.b) ? cloud.islands.b.map(Number) : [];
-  const beaten = [...new Set([...lB, ...cB])].filter(x => x >= 1 && x <= 50).sort((a, b) => a - b);
+  const beaten = [...new Set([...lB, ...cB])].filter(x => x >= 1 && x <= 100).sort((a, b) => a - b);
 
   const settings = cloudNewer
     ? { ...(local.settings || {}), ...(cloud.settings || {}) }
