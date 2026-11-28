@@ -19,18 +19,28 @@ const ABIL = ['dash', 'regen', 'shield', 'blast']; // اندفاع · ترميم
 const ABIL_TYPE = { rusher: 0, soldier: 1, drone: 2, brute: 3 };
 function abilityFor(type, isl) { if (type === 'boss' || ABIL_TYPE[type] === undefined) return null; return ABIL[(ABIL_TYPE[type] + ((isl | 0) || 1) - 1) % 4]; }
 
-// one boss per level (1..10), each stronger than the last
+// 20 island bosses (1..20), one dedicated boss per island
 export const BOSSES = [
-  { name: 'العملاق تيتان',     color: '#ff3d81', accent: '#ffd23d', eye: '#ff2a2a', core: '#ffd23d', size: 1.0,  wide: 1.0,  hp: 1.0,  dmg: 1.0,  speed: 2.7, slam: 6.5, volN: 7,  volCD: 2.6, shot: 19, rings: 1, summon: 'rusher', sumN: 3, extras: [] },
-  { name: 'الثور الحديدي',     color: '#ff8a2a', accent: '#8a5a2b', eye: '#ffe14d', core: '#ffb03d', size: 1.05, wide: 1.25, hp: 1.45, dmg: 1.03, speed: 2.8, slam: 6.1, volN: 7,  volCD: 2.5, shot: 19.5, rings: 1, summon: 'rusher', sumN: 4, extras: ['horns'] },
-  { name: 'صقر البرق',         color: '#2ee6ff', accent: '#1b4dff', eye: '#ffffff', core: '#7ff8ff', size: 1.08, wide: 0.85, hp: 1.9,  dmg: 1.06, speed: 3.2, slam: 5.8, volN: 8,  volCD: 2.35, shot: 21, rings: 1, summon: 'rusher', sumN: 4, extras: ['antennae', 'fin'] },
-  { name: 'عملاق الجليد',      color: '#bfe9ff', accent: '#5ab8ff', eye: '#3fa9ff', core: '#9fe8ff', size: 1.12, wide: 1.1,  hp: 2.35, dmg: 1.09,  speed: 2.9, slam: 5.5, volN: 8,  volCD: 2.3, shot: 21, rings: 1, summon: 'soldier', sumN: 2, extras: ['spikes'] },
-  { name: 'البركان الغاضب',    color: '#d1262b', accent: '#2a1a1a', eye: '#ffb03d', core: '#ff6a00', size: 1.15, wide: 1.2,  hp: 2.85, dmg: 1.12, speed: 3.0, slam: 5.2, volN: 9,  volCD: 2.2, shot: 22, rings: 1, summon: 'soldier', sumN: 3, extras: ['pipes', 'horns'], rage: true },
-  { name: 'الساحر البنفسجي',   color: '#a24bff', accent: '#ff6ad5', eye: '#ff6ad5', core: '#ff6ad5', size: 1.15, wide: 0.95, hp: 3.35, dmg: 1.15, speed: 3.2, slam: 5.0, volN: 9,  volCD: 2.1, shot: 22.5, rings: 1, summon: 'drone', sumN: 3, extras: ['halo', 'antennae'], rage: true },
-  { name: 'حارس الزمرد',       color: '#2fd36b', accent: '#0f6b3a', eye: '#d6ff3d', core: '#7dff9a', size: 1.2,  wide: 1.25, hp: 3.85, dmg: 1.18, speed: 3.2, slam: 4.7, volN: 10, volCD: 2.0, shot: 23, rings: 2, summon: 'soldier', sumN: 3, extras: ['cannons4', 'visor'], rage: true },
-  { name: 'القرش الفولاذي',    color: '#8a9bb8', accent: '#1e88ff', eye: '#3dd6ff', core: '#3dd6ff', size: 1.22, wide: 1.15, hp: 4.4,  dmg: 1.21, speed: 3.5, slam: 4.4, volN: 10, volCD: 1.95, shot: 24, rings: 2, summon: 'drone', sumN: 4, extras: ['fin', 'visor', 'spikes'], rage: true },
-  { name: 'سيد الظلال',        color: '#3a2f5a', bar: '#ff5a7a', accent: '#ff2a4d', eye: '#ff2a4d', core: '#ff2a4d', size: 1.27, wide: 1.2,  hp: 4.95, dmg: 1.24, speed: 3.5, slam: 4.1, volN: 11, volCD: 1.85, shot: 24.5, rings: 2, summon: 'drone', sumN: 4, extras: ['bighorns', 'spikes', 'cannons4'], rage: true },
-  { name: 'الإمبراطور الذهبي', color: '#ffc43d', accent: '#ffffff', eye: '#ff3d81', core: '#ffffff', size: 1.35, wide: 1.3,  hp: 5.6,  dmg: 1.27, speed: 3.6, slam: 3.8, volN: 11, volCD: 1.75, shot: 25, rings: 3, summon: 'soldier', sumN: 4, summon2: 'drone', extras: ['crown', 'halo', 'cannons4', 'pipes'], rage: true },
+  { name: 'العملاق تيتان',     color: '#ff3d81', accent: '#ffd23d', eye: '#ff2a2a', core: '#ffd23d', size: 1.00, wide: 1.00, hp: 1.00, dmg: 1.00, speed: 2.7, slam: 6.5, volN: 7,  volCD: 2.60, shot: 19.0, rings: 1, summon: 'rusher',  sumN: 3, extras: [] },
+  { name: 'عملاق الجليد',      color: '#bfe9ff', accent: '#5ab8ff', eye: '#3fa9ff', core: '#9fe8ff', size: 1.04, wide: 1.08, hp: 1.28, dmg: 1.02, speed: 2.8, slam: 6.2, volN: 7,  volCD: 2.50, shot: 19.5, rings: 1, summon: 'rusher',  sumN: 3, extras: ['spikes'] },
+  { name: 'البركان الغاضب',    color: '#d1262b', accent: '#2a1a1a', eye: '#ffb03d', core: '#ff6a00', size: 1.07, wide: 1.15, hp: 1.56, dmg: 1.04, speed: 2.85, slam: 6.0, volN: 8, volCD: 2.45, shot: 20.0, rings: 1, summon: 'soldier', sumN: 2, extras: ['pipes', 'horns'] },
+  { name: 'حارس الزمرد',       color: '#2fd36b', accent: '#0f6b3a', eye: '#d6ff3d', core: '#7dff9a', size: 1.09, wide: 1.18, hp: 1.85, dmg: 1.06, speed: 2.9, slam: 5.8, volN: 8,  volCD: 2.40, shot: 20.5, rings: 1, summon: 'soldier', sumN: 3, extras: ['cannons4', 'visor'] },
+  { name: 'الثور الحديدي',     color: '#ff8a2a', accent: '#8a5a2b', eye: '#ffe14d', core: '#ffb03d', size: 1.11, wide: 1.24, hp: 2.15, dmg: 1.08, speed: 2.95, slam: 5.6, volN: 8, volCD: 2.35, shot: 21.0, rings: 1, summon: 'rusher',  sumN: 4, extras: ['horns'] },
+  { name: 'القرش الفولاذي',    color: '#8a9bb8', accent: '#1e88ff', eye: '#3dd6ff', core: '#3dd6ff', size: 1.13, wide: 1.12, hp: 2.45, dmg: 1.10, speed: 3.1, slam: 5.4, volN: 8,  volCD: 2.30, shot: 21.2, rings: 1, summon: 'drone',   sumN: 3, extras: ['fin', 'visor'] },
+  { name: 'وحش السموم',        color: '#7dff3d', accent: '#1c4d18', eye: '#ffe64d', core: '#a6ff2e', size: 1.15, wide: 1.20, hp: 2.75, dmg: 1.12, speed: 3.0, slam: 5.2, volN: 9,  volCD: 2.25, shot: 21.5, rings: 1, summon: 'soldier', sumN: 3, extras: ['pipes', 'spikes'], rage: true },
+  { name: 'صقر البرق',         color: '#2ee6ff', accent: '#1b4dff', eye: '#ffffff', core: '#7ff8ff', size: 1.15, wide: 0.92, hp: 3.05, dmg: 1.14, speed: 3.25, slam: 5.1, volN: 9, volCD: 2.20, shot: 22.0, rings: 1, summon: 'drone',   sumN: 3, extras: ['antennae', 'fin'], rage: true },
+  { name: 'الحارس الحجري',     color: '#d9b36c', accent: '#5c4b32', eye: '#6ef2d6', core: '#6ef2d6', size: 1.18, wide: 1.25, hp: 3.35, dmg: 1.16, speed: 2.95, slam: 4.9, volN: 9, volCD: 2.15, shot: 22.0, rings: 2, summon: 'soldier', sumN: 3, extras: ['visor', 'cannons4'], rage: true },
+  { name: 'سيد الصواعق',       color: '#44d9ff', accent: '#ffe64d', eye: '#ffe64d', core: '#ffffff', size: 1.19, wide: 1.10, hp: 3.65, dmg: 1.18, speed: 3.3, slam: 4.8, volN: 9,  volCD: 2.10, shot: 22.5, rings: 2, summon: 'drone',   sumN: 3, extras: ['halo', 'antennae'], rage: true },
+  { name: 'شبح الساكورا',      color: '#ff6ec7', accent: '#5a1846', eye: '#fff0f8', core: '#ffd6f0', size: 1.18, wide: 0.96, hp: 3.95, dmg: 1.20, speed: 3.45, slam: 4.7, volN: 10, volCD: 2.05, shot: 23.0, rings: 2, summon: 'rusher', sumN: 4, extras: ['fin', 'halo'], rage: true },
+  { name: 'كراكن الأعماق',     color: '#1e90ff', accent: '#00ffaa', eye: '#00ffaa', core: '#7af2ff', size: 1.21, wide: 1.22, hp: 4.25, dmg: 1.22, speed: 3.2, slam: 4.6, volN: 10, volCD: 2.00, shot: 23.0, rings: 2, summon: 'drone',   sumN: 4, extras: ['spikes', 'antennae'], rage: true },
+  { name: 'عقرب الرمال',       color: '#ff5e3a', accent: '#4a1911', eye: '#ffe180', core: '#ffaa44', size: 1.22, wide: 1.24, hp: 4.55, dmg: 1.24, speed: 3.3, slam: 4.5, volN: 10, volCD: 1.98, shot: 23.5, rings: 2, summon: 'rusher',  sumN: 4, extras: ['horns', 'spikes'], rage: true },
+  { name: 'الساحر البنفسجي',   color: '#a24bff', accent: '#ff6ad5', eye: '#ff6ad5', core: '#5ef2ff', size: 1.22, wide: 1.00, hp: 4.85, dmg: 1.26, speed: 3.35, slam: 4.4, volN: 10, volCD: 1.94, shot: 23.8, rings: 2, summon: 'drone',  sumN: 4, extras: ['halo', 'antennae'], rage: true },
+  { name: 'المطرقة الفولاذية', color: '#ff9f1c', accent: '#302927', eye: '#ff4d4d', core: '#ffd166', size: 1.25, wide: 1.28, hp: 5.20, dmg: 1.28, speed: 3.25, slam: 4.3, volN: 10, volCD: 1.90, shot: 24.0, rings: 2, summon: 'soldier', sumN: 4, extras: ['pipes', 'cannons4'], rage: true },
+  { name: 'سيد الظلال',        color: '#3a2f5a', bar: '#ff5a7a', accent: '#ff2a4d', eye: '#ff2a4d', core: '#ff2a4d', size: 1.27, wide: 1.20, hp: 5.55, dmg: 1.30, speed: 3.45, slam: 4.2, volN: 11, volCD: 1.86, shot: 24.2, rings: 2, summon: 'drone', sumN: 4, extras: ['bighorns', 'spikes', 'cannons4'], rage: true },
+  { name: 'نسر السحاب',        color: '#7de8ff', accent: '#ffe680', eye: '#ffffff', core: '#ffe680', size: 1.27, wide: 1.05, hp: 5.90, dmg: 1.32, speed: 3.55, slam: 4.1, volN: 11, volCD: 1.82, shot: 24.5, rings: 2, summon: 'drone',   sumN: 4, extras: ['fin', 'halo', 'visor'], rage: true },
+  { name: 'حارس المدار',       color: '#b46bff', accent: '#3dd6ff', eye: '#3dd6ff', core: '#ff6ad5', size: 1.30, wide: 1.18, hp: 6.30, dmg: 1.34, speed: 3.5, slam: 4.0, volN: 11, volCD: 1.80, shot: 24.8, rings: 3, summon: 'soldier', sumN: 4, extras: ['halo', 'cannons4', 'antennae'], rage: true },
+  { name: 'سيد الكم',          color: '#00f5d4', accent: '#ff3df0', eye: '#ff3df0', core: '#ffe64d', size: 1.32, wide: 1.22, hp: 6.75, dmg: 1.36, speed: 3.6, slam: 3.9, volN: 12, volCD: 1.76, shot: 25.0, rings: 3, summon: 'drone',   sumN: 4, summon2: 'rusher', extras: ['halo', 'spikes', 'bighorns'], rage: true },
+  { name: 'الإمبراطور الذهبي', color: '#ffc43d', accent: '#ffffff', eye: '#ff3d81', core: '#ffffff', size: 1.36, wide: 1.30, hp: 7.25, dmg: 1.40, speed: 3.65, slam: 3.7, volN: 12, volCD: 1.70, shot: 25.5, rings: 3, summon: 'soldier', sumN: 4, summon2: 'drone', extras: ['crown', 'halo', 'cannons4', 'pipes'], rage: true },
 ];
 // خاصية لكل زعيم (طلب قصي): كل زعيم إله خاصية مختلفة عن الزعماء الثانيين وعن خواص الوحوش العادية
 const BOSS_AB = ['teleport', 'cloak', 'pull', 'reflect', 'enrage', 'push', 'zap', 'aura', 'plates', 'quake'];
@@ -74,7 +84,7 @@ const SKINS = SKIN_DEF.map(d => {
 const skinTCache = {};
 // نفس إحصائيات TYPES حرفياً (hp, speed, r, h, score…) — بس اللون والحطام والشكل حسب الجزيرة
 function skinT(type, isl) {
-  const i = Math.max(1, Math.min(SKINS.length, isl | 0 || 1)); if (i === 1) return TYPES[type];
+  const i = (((Math.max(1, isl | 0) - 1) % SKINS.length) + 1); if (i === 1) return TYPES[type];
   const key = type + i; if (skinTCache[key]) return skinTCache[key];
   const K = SKINS[i - 1], base = TYPES[type], color = K.col[type] || base.color;
   return (skinTCache[key] = { ...base, color, debris: [color, K.darkHex, K.gB], skin: K });
@@ -345,15 +355,15 @@ export class Enemies {
   constructor(scene, tex, G) { this.scene = scene; this.tex = tex; this.G = G; this.list = []; this.flowT = 0; this.boss = null; this.abN = 0; }
   spawn(type, pos, opts = {}) {
     const G = this.G; const lvl = opts.level || 1;
-    const T = type === 'boss' ? bossT(opts.boss || bossFor(Math.ceil(lvl / 5))) : skinT(type, opts.isl || Math.ceil((G.gl || 1) / 10)); const { root, parts } = buildEnemyMesh(type, this.tex, T);
+    const T = type === 'boss' ? bossT(opts.boss || bossFor(Math.ceil(lvl / 5))) : skinT(type, opts.isl || Math.ceil((G.gl || 1) / 5)); const { root, parts } = buildEnemyMesh(type, this.tex, T);
     const e = {
       id: UID++, type, T, root, parts, pos: pos.clone(), vel: V(), yaw: Math.random() * 6.28, hp: T.hp * (opts.hpMul || 1) * (type === 'boss' ? 1 : MOB_NERF), maxHp: T.hp * (opts.hpMul || 1) * (type === 'boss' ? 1 : MOB_NERF), dmgMul: (opts.dmgMul || 1) * (type === 'boss' ? 1 : MOB_NERF), speedMul: opts.speedMul || 1,
       state: 'spawn', stateT: 0, spawnT: 0.9, aware: !!opts.aware, seeT: Math.random() * 0.2, canSee: false, lastSeen: V(), lostT: 0, attackCD: 1 + Math.random(), burst: 0, burstN: 0, burstT: 0,
       strafeDir: Math.random() < 0.5 ? -1 : 1, strafeT: 1 + Math.random(), cover: null, coverT: 0, flash: 0, seed: Math.random() * 100, alive: true, spheres: [], awareT: opts.demo ? 1e9 : (opts.aware ? 0 : 6 + Math.random() * 4),
       orbit: Math.random() * 6.28, orbitDir: Math.random() < 0.5 ? -1 : 1, hoverY: 3.8 + Math.random() * 1.6, demo: !!opts.demo, slamCD: 5, volleyCD: 2.5, summoned: 0, stuckT: 0, lastPos: pos.clone(), patrolTarget: null, charge: 0, windup: 0,
     };
-    e.bab = type === 'boss' ? BOSSES.findIndex(b => b.name === T.name) : -1; e.cloak = false; e.reflectT = 0; e.pullT = 0;
-    e.ab = type === 'boss' ? null : ABIL[(this.abN++ + ((opts.isl || Math.ceil((G.gl || 1) / 10)) - 1)) % 4]; // كل وحش إله خاصية وحدة، موزّعين على كل الوحوش بالجزيرة
+    e.bab = type === 'boss' ? (Math.max(0, BOSSES.findIndex(b => b.name === T.name)) % BOSS_AB.length) : -1; e.cloak = false; e.reflectT = 0; e.pullT = 0;
+    e.ab = type === 'boss' ? null : ABIL[(this.abN++ + ((opts.isl || Math.ceil((G.gl || 1) / 5)) - 1)) % 4]; // كل وحش إله خاصية وحدة، موزّعين على كل الوحوش بالجزيرة
     if (T.fly) e.pos.y = Math.max(e.pos.y, 2.5);
     root.position.copy(e.pos); root.scale.setScalar(0.01); this.scene.add(root); this.scene.add(parts.blob);
     this.list.push(e); if (type === 'boss') this.boss = e;
