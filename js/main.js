@@ -21,7 +21,7 @@ if (!LS.get('ns_mig_sens25', false)) { S.sensT = Math.min(3, (+S.sensT || 1) * 1
 if (!LS.get('ns_mig_sens20', false)) { S.sensT = Math.min(3, (+S.sensT || 1) * 1.2); S.sensM = Math.min(3, (+S.sensM || 1) * 1.2); LS.set('ns_mig_sens20', true); LS.set('ns_settings', S); }
 
 const isTouch = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
-const QUAL = { low: { pr: 0.8, shadows: 0, aa: false, env: false }, med: { pr: 1.25, shadows: 1024, aa: false, env: true }, high: { pr: 2, shadows: 2048, aa: true, env: true } };
+const QUAL = { low: { pr: 0.65, shadows: 0, aa: false, env: false }, med: { pr: 1.25, shadows: 1024, aa: false, env: true }, high: { pr: 2.25, shadows: 2048, aa: true, env: true } };
 function qualityKey() { if (S.quality !== 'auto') return S.quality; return isTouch ? 'med' : 'high'; }
 const QK = qualityKey(), Q = QUAL[QK];
 
@@ -43,15 +43,43 @@ const sky = makeSky(scene, QK);
 const hemi = new THREE.HemisphereLight('#9d8cff', '#40284a', 1.35); scene.add(hemi);
 const sun = new THREE.DirectionalLight('#ffc2a0', 2.3); sun.position.set(18, 38, -50); scene.add(sun); scene.add(sun.target);
 const fill = new THREE.DirectionalLight('#38c8ff', 0.55); fill.position.set(-20, 15, 40); scene.add(fill);
-if (Q.shadows) { sun.castShadow = true; sun.shadow.mapSize.set(Q.shadows, Q.shadows); const sc = sun.shadow.camera; sc.left = -46; sc.right = 46; sc.top = 46; sc.bottom = -46; sc.near = 5; sc.far = 140; sun.shadow.bias = -0.0006; sun.shadow.normalBias = 0.05; }
+{ const sc = sun.shadow.camera; sc.left = -46; sc.right = 46; sc.top = 46; sc.bottom = -46; sc.near = 5; sc.far = 140; sun.shadow.bias = -0.0006; sun.shadow.normalBias = 0.05; }
+if (Q.shadows) { sun.castShadow = true; sun.shadow.mapSize.set(Q.shadows, Q.shadows); }
 
 const world = new World(scene, QK, tex);
 const fx = new FX(scene, tex, world, QK);
 const vm = new Viewmodel(tex);
-if (Q.env) {
+let _envTex = null;
+function getEnvTex() {
+  if (_envTex) return _envTex;
   const pm = new THREE.PMREMGenerator(renderer); const es = new THREE.Scene(); const s2 = makeSky(es, QK); s2.mat.uniforms.time.value = 0;
   es.add(new THREE.HemisphereLight('#9d8cff', '#40284a', 1));
-  const env = pm.fromScene(es, 0.03).texture; scene.environment = env; scene.environmentIntensity = 0.45; vm.scene.environment = env; vm.scene.environmentIntensity = 0.8; pm.dispose();
+  _envTex = pm.fromScene(es, 0.03).texture; pm.dispose();
+  return _envTex;
+}
+if (Q.env) {
+  const env = getEnvTex(); scene.environment = env; scene.environmentIntensity = 0.45; vm.scene.environment = env; vm.scene.environmentIntensity = 0.8;
+}
+function applyQualityLive() {
+  const qk = qualityKey(), q = QUAL[qk] || QUAL.med;
+  pixelRatio = Math.min(window.devicePixelRatio || 1, q.pr);
+  prCap = Math.min(window.devicePixelRatio || 1, S.quality === 'auto' ? QUAL.med.pr : q.pr);
+  renderer.setPixelRatio(pixelRatio);
+  const useSh = q.shadows > 0;
+  renderer.shadowMap.enabled = useSh;
+  sun.castShadow = useSh;
+  if (useSh) {
+    sun.shadow.mapSize.set(q.shadows, q.shadows);
+    if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; }
+  }
+  const env = q.env ? getEnvTex() : null;
+  scene.environment = env; scene.environmentIntensity = env ? 0.45 : 0;
+  vm.scene.environment = env; vm.scene.environmentIntensity = env ? 0.8 : 0;
+  const markMat = o => { if (o.material) [].concat(o.material).forEach(mm => mm.needsUpdate = true); };
+  scene.traverse(markMat); vm.scene.traverse(markMat);
+  if (typeof G !== 'undefined') { G.degraded = false; G.slowSecs = 0; G.shadowsDone = false; }
+  world.dirtyShadows = true;
+  if (typeof resize === 'function') resize();
 }
 const sound = new Sound(); sound.vol = S.vol; sound.musicOn = S.music; sound.musicVol = S.musicVol ?? 1;
 
@@ -688,15 +716,14 @@ function bindSettings() {
   const bindR = (id, key, out, fmt = v => v) => { const el = $(id), o = $(out); el.value = S[key]; o && (o.textContent = fmt(S[key])); el.addEventListener('input', () => { S[key] = parseFloat(el.value); o && (o.textContent = fmt(S[key])); saveSettings(); if (key === 'vol') sound.setVolume(S.vol); }); };
   bindR('sSensT', 'sensT', 'oSensT', v => (+v).toFixed(2)); bindR('sSmooth', 'smooth', 'oSmooth', v => Math.round(v * 100) + '%'); bindR('sSensM', 'sensM', 'oSensM', v => (+v).toFixed(2)); bindR('sVol', 'vol', 'oVol', v => Math.round(v * 100) + '%'); bindR('sBs', 'bs', 'oBs', v => Math.round(v * 100) + '%'); bindR('sMvol', 'musicVol', 'oMvol', v => Math.round(v * 100) + '%'); bindR('sBop', 'bop', 'oBop', v => Math.round(v * 100) + '%'); bindR('sFov', 'fov', 'oFov', v => Math.round(v) + '°'); bindR('sDist', 'viewDist', 'oDist', v => '×' + (+v).toFixed(2).replace(/\.?0+$/, '')); $('sDist').addEventListener('input', applyViewDist);
   $('sMvol').addEventListener('input', () => sound.setMusicVol(S.musicVol)); $('sBop').addEventListener('input', applyHudSettings); $('sBs').addEventListener('input', applyHudSettings);
-  { const fc = $('sFpsCap'); fc.value = String(S.fpsCap); fc.addEventListener('change', () => { S.fpsCap = +fc.value; saveSettings(); }); }
+  { const fc = $('sFpsCap'); fc.value = String(S.fpsCap); fc.addEventListener('change', () => { S.fpsCap = +fc.value; saveSettings(); fpsAcc = 0; fpsN = 0; fpsT = 0; }); }
   { const sv = $('sView'); sv.value = S.view; sv.addEventListener('change', () => { S.view = sv.value; P.view = S.view; saveSettings(); }); }
   $('sBs').addEventListener('input', applyHudSettings);
   const bindC = (id, key, cb) => { const el = $(id); el.checked = !!S[key]; el.addEventListener('change', () => { S[key] = el.checked; saveSettings(); cb && cb(); applyHudSettings(); }); };
   bindC('sMusic', 'music', () => sound.setMusic(S.music)); bindC('sAuto', 'autoFire'); bindC('sAssist', 'assist'); bindC('sInvert', 'invert'); bindC('sUnscope', 'unscopeRun'); bindC('sUnreload', 'unreloadRun'); bindC('sLeanAim', 'leanAim'); bindC('sLeftFire', 'leftFire'); bindC('sFps', 'fps'); bindC('sShake', 'shake'); bindC('sVibe', 'vibe');
-  const q = $('sQuality'); q.value = S.quality; q.addEventListener('change', () => { S.quality = q.value; saveSettings(); qualityChanged = true; });
+  const q = $('sQuality'); q.value = S.quality; q.addEventListener('change', () => { S.quality = q.value; saveSettings(); applyQualityLive(); });
 }
-let qualityChanged = false;
-function closeSettings() { if (qualityChanged) { qualityChanged = false; if (G.mode === 'menu' || settingsReturn === 'menu') { location.reload(); return; } } applyHudSettings(); if (settingsReturn === 'game') { settingsReturn = 'pause'; resumeGame(); return; } show(settingsReturn); }
+function closeSettings() { applyHudSettings(); if (settingsReturn === 'game') { settingsReturn = 'pause'; resumeGame(); return; } show(settingsReturn); }
 const click = (id, fn) => $(id).addEventListener('click', e => { e.preventDefault(); sound.init(); sound.play('ui'); fn(); });
 click('mPlay', () => { const q = new URLSearchParams(location.search), d = +(q.get('boss') || 0), di = +(q.get('island') || 0); if ((d >= 1 && d <= 10 && !G.bossUsed) || (di >= 1 && di <= ISL && !G.hookUsed)) { tryFullscreen(); startGame(); } else openIslands(); });
 click('islBack', toMenu); click('islShop', () => openShop('islands'));
@@ -839,7 +866,7 @@ let fpsAcc = 0, fpsN = 0, fpsT = 0, fpsVal = 60;
 function perf(dt) {
   fpsAcc += dt; fpsN++; fpsT += dt;
   if (fpsT >= 1) {
-    fpsVal = fpsN / fpsAcc; fpsAcc = 0; fpsN = 0; fpsT = 0; if (S.fps) H.fps.textContent = `${Math.round(fpsVal)} FPS · ${renderer.getPixelRatio().toFixed(2)}x`;
+    fpsVal = fpsN / fpsAcc; fpsAcc = 0; fpsN = 0; fpsT = 0; if (S.fps) { const qn = { auto: 'تلقائي', low: 'منخفضة', med: 'متوسطة', high: 'عالية' }[S.quality] || S.quality; H.fps.textContent = `${Math.round(fpsVal)} FPS · ${renderer.getPixelRatio().toFixed(2)}x · ${qn}`; }
     if (S.quality === 'auto' && G.mode === 'play') {
       let pr = renderer.getPixelRatio();
       // last resort on slow phones: drop shadows + reflections once
@@ -889,7 +916,7 @@ initCloud({
     const p2 = loadProg();
     PROG.b.length = 0; PROG.b.push(...p2.b); PROG.won = !!p2.won;
     Object.assign(S, DEFAULTS, LS.get('ns_settings', {}));
-    updateBest(); applyHudSettings();
+    updateBest(); applyHudSettings(); applyQualityLive();
     if (!$('islands').classList.contains('hidden')) renderIslands();
     if (!$('levels').classList.contains('hidden')) renderLevels();
     if (!$('shop').classList.contains('hidden') && typeof renderShop === 'function') renderShop();
